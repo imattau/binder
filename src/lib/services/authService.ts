@@ -10,9 +10,21 @@ import { currentBookStore } from '$lib/state/currentBookStore';
 import { currentChapterStore } from '$lib/state/currentChapterStore';
 import { get } from 'svelte/store';
 import { settingsService } from './settingsService';
+import { draftSyncService } from './draftSyncService';
 import { goto } from '$app/navigation';
 import { initiateNostrConnectSession, createResilientNip46Signer } from './nostrConnectService';
 import { ensureAdminAssignment } from './adminService';
+import { profileService } from './profileService';
+import { DEFAULT_RELAYS } from '$lib/infra/nostr/pool';
+
+function parseRelaysFromUrl(input: string): string[] {
+    try {
+        const parsed = new URL(input);
+        return parsed.searchParams.getAll('relay');
+    } catch {
+        return [];
+    }
+}
 
 export const authService = {
     async loginWithNip07(): Promise<Result<string>> {
@@ -23,9 +35,14 @@ export const authService = {
             const pubkey = await nip07Adapter.getPublicKey();
             const isAdmin = ensureAdminAssignment(pubkey);
             authStore.login(pubkey, 'nip07', undefined, undefined, isAdmin);
+            const profileRes = await profileService.loadProfile(pubkey);
+            if (profileRes.ok) {
+                authStore.updateProfile(profileRes.value);
+            }
             
             // Sync relays in background
             settingsService.syncRelaysFromNetwork(pubkey);
+            void draftSyncService.restoreLatestSnapshot();
             
             return ok(pubkey);
         } catch (e: any) {
@@ -44,8 +61,12 @@ export const authService = {
             }
             
             const localSigner = new NDKPrivateKeySigner(localKey);
-            
-            const signer = createResilientNip46Signer(bunkerUrl, localSigner);
+            const manualRelays = parseRelaysFromUrl(bunkerUrl);
+            const signer = createResilientNip46Signer(
+                bunkerUrl,
+                localSigner,
+                manualRelays.length > 0 ? manualRelays : DEFAULT_RELAYS
+            );
             
             // For manual bunkerUrl (could be NIP-05), we might still need blockUntilReady
             // but we'll wrap it in a timeout and RPC check
@@ -57,7 +78,12 @@ export const authService = {
             const pubkey = user.pubkey;
             const isAdmin = ensureAdminAssignment(pubkey);
             authStore.login(pubkey, 'nip46', bunkerUrl, localKey, isAdmin);
+            const profileRes = await profileService.loadProfile(pubkey);
+            if (profileRes.ok) {
+                authStore.updateProfile(profileRes.value);
+            }
             settingsService.syncRelaysFromNetwork(pubkey);
+            void draftSyncService.restoreLatestSnapshot();
 
             return ok({ pubkey, signer });
         } catch (e: any) {
@@ -76,7 +102,12 @@ export const authService = {
                 const bunkerUrl = `bunker://${response.remotePubkey}?relay=${session.relays[0]}`;
                 const isAdmin = ensureAdminAssignment(user.pubkey);
                 authStore.login(user.pubkey, 'nip46', bunkerUrl, session.localKey, isAdmin);
+                const profileRes = await profileService.loadProfile(user.pubkey);
+                if (profileRes.ok) {
+                    authStore.updateProfile(profileRes.value);
+                }
                 void settingsService.syncRelaysFromNetwork(user.pubkey);
+                void draftSyncService.restoreLatestSnapshot();
                 return user.pubkey;
             };
 

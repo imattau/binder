@@ -1,5 +1,5 @@
-import { NDKNip46Signer, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk';
-import { ndk, connectNDK } from '$lib/infra/nostr/ndk';
+import NDK, { NDKNip46Signer, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk';
+import { ndk } from '$lib/infra/nostr/ndk';
 import { createNostrConnectURI } from 'nostr-tools/nip46';
 import { generateSecretKey } from 'nostr-tools';
 import { bytesToHex } from '@noble/hashes/utils';
@@ -40,8 +40,12 @@ export interface NostrConnectResponse {
   remotePubkey: string;
 }
 
-export function createResilientNip46Signer(remoteId: string, localSigner: NDKPrivateKeySigner): NDKNip46Signer {
-  const signer = new NDKNip46Signer(ndk, remoteId, localSigner);
+export function createResilientNip46Signer(
+  remoteId: string,
+  localSigner: NDKPrivateKeySigner,
+  relayUrls: string[] = defaultHandshakeRelays
+): NDKNip46Signer {
+  const signer = new NDKNip46Signer(ndk, remoteId, localSigner, relayUrls);
 
   if (remoteId.length === 64 && !remoteId.includes('@')) {
     // Forcing the bunker pubkey ensures the signer resolves owners correctly
@@ -62,12 +66,13 @@ export function createResilientNip46Signer(remoteId: string, localSigner: NDKPri
 
 export async function initiateNostrConnectSession(options: NostrConnectSessionOptions = {}): Promise<NostrConnectSession> {
   const relays = options.relays ?? [...defaultHandshakeRelays];
+  const handshakeNdk = new NDK({
+    explicitRelayUrls: relays,
+    autoConnectUserRelays: false,
+    clientName: 'Binder'
+  });
 
-  for (const relay of relays) {
-    ndk.addExplicitRelay(relay);
-  }
-
-  await connectNDK();
+  await handshakeNdk.connect();
 
   const localKey = options.localKey ?? bytesToHex(generateSecretKey());
   const localSigner = new NDKPrivateKeySigner(localKey);
@@ -92,10 +97,10 @@ export async function initiateNostrConnectSession(options: NostrConnectSessionOp
   });
 
   const waitForUser = async (): Promise<NostrConnectResponse> => {
-    await connectNDK();
+    await handshakeNdk.connect();
 
     return new Promise<NostrConnectResponse>((resolve, reject) => {
-      const sub = ndk.subscribe(
+      const sub = handshakeNdk.subscribe(
         {
           kinds: [24133],
           '#p': [localUser.pubkey]
@@ -103,16 +108,25 @@ export async function initiateNostrConnectSession(options: NostrConnectSessionOp
         { closeOnEose: false }
       );
 
-      const timeout = setTimeout(() => {
+      let settled = false;
+      let timeout: ReturnType<typeof setTimeout>;
+      const cleanup = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
         sub.stop();
+        handshakeNdk.pool.relays.forEach((relay) => relay.disconnect());
+      };
+
+      timeout = setTimeout(() => {
+        cleanup();
         reject(new Error('Connection timed out'));
       }, options.waitForUserTimeoutMs ?? 120000);
 
       sub.on('event', async (event) => {
-        sub.stop();
-        clearTimeout(timeout);
+        cleanup();
         try {
-          const signer = createResilientNip46Signer(event.pubkey, localSigner);
+          const signer = createResilientNip46Signer(event.pubkey, localSigner, relays);
           signer.secret = secret;
           signer.relayUrls = relays;
 
@@ -128,6 +142,7 @@ export async function initiateNostrConnectSession(options: NostrConnectSessionOp
           reject(err);
         }
       });
+
     });
   };
 
