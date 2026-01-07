@@ -3,8 +3,30 @@
   import { authStore } from '$lib/state/authStore';
   import { authService } from '$lib/services/authService';
   import Icon from './Icon.svelte';
+  let showMobileMenu = false;
 
   const isActive = (path: string) => $page.url.pathname.startsWith(path);
+
+  function viewerInitials() {
+    const name = $authStore.profile?.name;
+    if (name) {
+      return name
+        .split(' ')
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+    }
+    return $authStore.pubkey ? $authStore.pubkey.slice(0, 2).toUpperCase() : 'GU';
+  }
+
+  function viewerLabel() {
+    const name = $authStore.profile?.name;
+    if (name) {
+      return name;
+    }
+    return $authStore.pubkey ? `${$authStore.pubkey.slice(0, 6)}…` : 'Guest';
+  }
 </script>
 
 <nav class="sticky top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-md shadow-sm transition-all duration-300">
@@ -34,6 +56,19 @@
         
         <div class="flex items-center space-x-4">
             {#if $authStore.pubkey}
+                <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+                        {#if $authStore.profile?.picture}
+                            <img src={$authStore.profile.picture} alt="Profile" class="h-full w-full rounded-full object-cover" />
+                        {:else}
+                            {viewerInitials()}
+                        {/if}
+                    </span>
+                    <div class="flex flex-col leading-tight">
+                        <span class="text-slate-900 font-semibold">{viewerLabel()}</span>
+                        <span class="text-[10px] uppercase tracking-[0.3em] text-slate-400">Connected</span>
+                    </div>
+                </div>
                 <a href="/health" title="System Health" class="text-slate-400 hover:text-slate-600 transition-colors {isActive('/health') ? 'text-violet-600' : ''}">
                     <Icon name="Pulse" size={20} />
                 </a>
@@ -60,12 +95,33 @@
       </div>
       
       <!-- Mobile Menu Button (Placeholder) -->
-      <button class="md:hidden p-2 text-slate-500">
-          <span class="sr-only">Open menu</span>
-          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-          </svg>
+      <button class="md:hidden p-2 text-slate-500" onclick={() => showMobileMenu = !showMobileMenu}>
+        <span class="sr-only">Open menu</span>
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
       </button>
     </div>
   </div>
+  {#if showMobileMenu}
+    <div class="md:hidden border-t border-white/10 bg-white/90 backdrop-blur-md shadow-sm">
+      <div class="space-y-2 px-4 py-4">
+        <a href="/discover" class="block text-sm font-medium text-slate-700 hover:text-slate-900">Discover</a>
+        {#if $authStore.pubkey}
+          <a href="/library" class="block text-sm font-medium text-slate-700 hover:text-slate-900">Library</a>
+          <a href="/writer" class="block text-sm font-medium text-slate-700 hover:text-slate-900">Write</a>
+          {#if $authStore.isAdmin}
+            <a href="/admin" class="block text-sm font-medium text-amber-600 hover:text-amber-700">Admin</a>
+          {/if}
+          <a href="/health" class="block text-sm font-medium text-slate-500 hover:text-violet-600">Health</a>
+          <a href="/settings" class="block text-sm font-medium text-slate-500 hover:text-violet-600">Settings</a>
+          <button class="w-full text-left text-sm font-semibold text-slate-500 hover:text-slate-900" onclick={() => { authService.logout(); showMobileMenu = false; }}>
+            Logout
+          </button>
+        {:else}
+          <a href="/login" class="block rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white text-center">Login</a>
+        {/if}
+      </div>
+    </div>
+  {/if}
 </nav>

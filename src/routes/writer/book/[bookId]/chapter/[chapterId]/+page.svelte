@@ -17,16 +17,16 @@
   const bookId = $page.params.bookId || '';
   const chapterId = $page.params.chapterId || '';
   
-  let isEditingTitle = $state(false);
-  let editTitle = $state('');
+  let isEditingTitle = false;
+  let editTitle = '';
   let autoSaveTimer: ReturnType<typeof setTimeout>;
-  let codeMirrorRef = $state<{
+  let codeMirrorRef: {
     wrapSelection?: (prefix: string, suffix?: string, placeholder?: string) => void;
     insertAtLineStart?: (prefix: string) => void;
-  } | null>(null);
-  let imageInput = $state<HTMLInputElement | null>(null);
-  let isUploadingImage = $state(false);
-  let imageUploadError = $state('');
+  } | null = null;
+  let imageInput: HTMLInputElement | null = null;
+  let isUploadingImage = false;
+  let imageUploadError = '';
 
   onMount(() => {
     if (!$authStore.pubkey) {

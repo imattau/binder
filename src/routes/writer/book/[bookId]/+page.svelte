@@ -24,16 +24,16 @@
   import { writerBooksStore } from '$lib/state/writerBooksStore';
 
   const bookId = $page.params.bookId || '';
-  let isEditingTitle = $state(false);
-  let editTitle = $state('');
-  let isUploadingCover = $state(false);
-  let showExistingModal = $state(false);
+  let isEditingTitle = false;
+  let editTitle = '';
+  let isUploadingCover = false;
+  let showExistingModal = false;
 
   // Publishing State
-  let showPublishModal = $state(false);
-  let isPublishing = $state(false);
-  let publishResults = $state<PublishResult[] | null>(null);
-  let publishError = $state<{ message: string } | null>(null);
+  let showPublishModal = false;
+  let isPublishing = false;
+  let publishResults: PublishResult[] | null = null;
+  let publishError: { message: string } | null = null;
 
   onMount(() => {
     if (!$authStore.pubkey) {

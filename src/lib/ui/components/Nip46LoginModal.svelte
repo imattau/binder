@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import Button from './Button.svelte';
   import Icon from './Icon.svelte';
   import Input from './Input.svelte';
@@ -7,31 +6,35 @@
   import QRCode from 'qrcode';
   import Tabs from './Tabs.svelte';
 
-  let { isOpen, onClose, onLogin }: { isOpen: boolean, onClose: () => void, onLogin: (pubkey: string) => void } = $props();
+  export let isOpen: boolean;
+  export let onClose: () => void;
+  export let onLogin: (pubkey: string) => void;
   
-  let mode = $state('scan'); // 'scan' | 'manual'
-  let bunkerUrl = $state('');
-  let isConnecting = $state(false);
-  let error = $state('');
-  let qrDataUrl = $state('');
-  let scanUri = $state('');
-  let copyStatus = $state('');
+  let mode: 'scan' | 'manual' = 'scan';
+  let bunkerUrl = '';
+  let isConnecting = false;
+  let error = '';
+  let qrDataUrl = '';
+  let scanUri = '';
+  let copyStatus = '';
 
-  // Reset state when opened
-  $effect(() => {
-      if (isOpen) {
-          if (mode === 'scan' && !scanUri) {
-              startScanFlow();
-          }
-      } else {
-          // Cleanup
-          scanUri = '';
-          qrDataUrl = '';
-          isConnecting = false;
-          error = '';
-          copyStatus = '';
+  function resetModalState() {
+      mode = 'scan';
+      bunkerUrl = '';
+      scanUri = '';
+      qrDataUrl = '';
+      isConnecting = false;
+      error = '';
+      copyStatus = '';
+  }
+
+  $: if (isOpen) {
+      if (mode === 'scan' && !scanUri && !isConnecting) {
+          startScanFlow();
       }
-  });
+  } else {
+      resetModalState();
+  }
 
   async function startScanFlow() {
       isConnecting = true;
@@ -111,7 +114,7 @@
           <Tabs 
               items={[{ id: 'scan', label: 'Scan QR' }, { id: 'manual', label: 'Enter Address' }]} 
               activeItem={mode} 
-              onchange={(id: string) => { mode = id; error = ''; }}
+              onchange={(id: 'scan' | 'manual') => { mode = id; error = ''; }}
           />
       </div>
 
