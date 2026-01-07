@@ -12,6 +12,7 @@ import { get } from 'svelte/store';
 import { settingsService } from './settingsService';
 import { goto } from '$app/navigation';
 import { initiateNostrConnectSession, createResilientNip46Signer } from './nostrConnectService';
+import { ensureAdminAssignment } from './adminService';
 
 export const authService = {
     async loginWithNip07(): Promise<Result<string>> {
@@ -20,7 +21,8 @@ export const authService = {
                 return fail({ message: 'Nostr extension not found' });
             }
             const pubkey = await nip07Adapter.getPublicKey();
-            authStore.login(pubkey, 'nip07');
+            const isAdmin = ensureAdminAssignment(pubkey);
+            authStore.login(pubkey, 'nip07', undefined, undefined, isAdmin);
             
             // Sync relays in background
             settingsService.syncRelaysFromNetwork(pubkey);
@@ -53,7 +55,8 @@ export const authService = {
             ]);
             
             const pubkey = user.pubkey;
-            authStore.login(pubkey, 'nip46', bunkerUrl, localKey);
+            const isAdmin = ensureAdminAssignment(pubkey);
+            authStore.login(pubkey, 'nip46', bunkerUrl, localKey, isAdmin);
             settingsService.syncRelaysFromNetwork(pubkey);
 
             return ok({ pubkey, signer });
@@ -71,7 +74,8 @@ export const authService = {
                 const response = await session.waitForUser();
                 const user = response.user;
                 const bunkerUrl = `bunker://${response.remotePubkey}?relay=${session.relays[0]}`;
-                authStore.login(user.pubkey, 'nip46', bunkerUrl, session.localKey);
+                const isAdmin = ensureAdminAssignment(user.pubkey);
+                authStore.login(user.pubkey, 'nip46', bunkerUrl, session.localKey, isAdmin);
                 void settingsService.syncRelaysFromNetwork(user.pubkey);
                 return user.pubkey;
             };
