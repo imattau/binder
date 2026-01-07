@@ -6,7 +6,7 @@
   import Button from '$lib/ui/components/Button.svelte';
   import Input from '$lib/ui/components/Input.svelte';
   import { authStore } from '$lib/state/authStore';
-  import { settingsService } from '$lib/services/settingsService';
+import { relayDefaultsService } from '$lib/services/relayDefaultsService';
   import { DEFAULT_RELAYS } from '$lib/infra/nostr/pool';
   import { mediaSettingsService, DEFAULT_MEDIA_SERVERS } from '$lib/services/mediaSettingsService';
   import type { RelaySetting, MediaServerSetting } from '$lib/infra/storage/dexieDb';
@@ -43,7 +43,7 @@
   }
 
   async function refreshRelays() {
-    const res = await settingsService.getRelays();
+    const res = await relayDefaultsService.getDefaults();
     relays = res.ok && res.value.length ? res.value : DEFAULT_RELAYS.map(url => ({ url, enabled: true }));
   }
 
@@ -57,7 +57,7 @@
     isSavingRelays = true;
     relayMessage = '';
     const updated = [...relays, { url: newRelayUrl.trim(), enabled: true }];
-    const res = await settingsService.setRelays(updated);
+    const res = await relayDefaultsService.setDefaults(updated);
     isSavingRelays = false;
     if (res.ok) {
       newRelayUrl = '';
@@ -71,7 +71,7 @@
   async function toggleRelay(index: number) {
     const updated = [...relays];
     updated[index] = { ...updated[index], enabled: !updated[index].enabled };
-    const res = await settingsService.setRelays(updated);
+    const res = await relayDefaultsService.setDefaults(updated);
     if (res.ok) {
       relayMessage = 'Relay list updated.';
       await refreshRelays();
@@ -83,7 +83,7 @@
   async function resetRelays() {
     isSavingRelays = true;
     relayMessage = '';
-    const res = await settingsService.resetRelaysToDefaults();
+    const res = await relayDefaultsService.resetToDefaults();
     isSavingRelays = false;
     if (res.ok) {
       relayMessage = 'Defaults restored.';
