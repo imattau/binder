@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Refined Design Tokens */
+    --surface-0: #ffffff;
+    --surface-1: #f8fafc; /* slate-50 */
+    --surface-2: #f1f5f9; /* slate-100 */
+    --surface-3: #e2e8f0; /* slate-200 */
+    
+    --text-0: #0f172a; /* slate-900 */
+    --text-1: #334155; /* slate-700 */
+    --text-2: #64748b; /* slate-500 */
+    --text-3: #94a3b8; /* slate-400 */
+
+    /* Brand Color - Violet */
+    --primary: #7c3aed; /* violet-600 */
+    --primary-hover: #6d28d9; /* violet-700 */
+    --primary-subtle: #f5f3ff; /* violet-50 */
+    
+    --border: #e2e8f0; /* slate-200 */
+    --radius: 0.75rem; /* 12px */
+    
+    /* Modern Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-float: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+
+  body {
+    background-color: var(--surface-1);
+    color: var(--text-0);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography Utilities */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-semibold text-slate-900;
+  }
+}
+
+/* Custom Scrollbar for a cleaner feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Prose overrides for Merriweather reading experience */
+.prose {
+  font-family: 'Merriweather', serif;
+  line-height: 1.8;
+  color: var(--text-1);
+}
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  font-family: 'Inter', sans-serif; /* Keep headings modern */
+  color: var(--text-0);
+}
+.prose a {
+  color: var(--primary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.prose a:hover {
+  border-bottom-color: var(--primary);
+}
+.prose p {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+}
