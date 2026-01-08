@@ -13,15 +13,20 @@
   import Input from '$lib/ui/components/Input.svelte';
   import { bookLayoutStore } from '$lib/state/bookLayoutStore';
 
-  let isCreating = false;
-  let newTitle = '';
+  let isCreating = $state(false);
+  let newTitle = $state('');
+
+  // Reactive protection
+  $effect(() => {
+      if (!$authStore.pubkey) {
+          goto('/login');
+      }
+  });
 
   onMount(() => {
-    if (!$authStore.pubkey) {
-        goto('/login');
-        return;
+    if ($authStore.pubkey) {
+        writerBooksStore.load();
     }
-    writerBooksStore.load();
   });
 
   async function handleCreate() {

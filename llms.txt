@@ -1,0 +1,195 @@
+---
+# https://vitepress.dev/reference/default-theme-home-page
+layout: home
+
+hero:
+  name: Nostrbook
+  text: A Comprehensive Registry of Nostr Documentation
+  tagline: Structured, detailed knowledge about Nostr for both humans and AI. ⚡
+  actions:
+    - theme: brand
+      text: Protocol Basics
+      link: /protocol/
+    - theme: alt
+      text: Explore Events
+      link: /kinds/
+    - theme: alt
+      text: View on GitLab
+      link: https://gitlab.com/soapbox-pub/nostrbook
+
+features:
+  - icon: 📖
+    title: Protocol Reference
+    details: Clear, detailed explanations of the core Nostr protocol components and message formats.
+    link: /protocol/
+  - icon: 🔢
+    title: Event Kinds
+    details: Comprehensive documentation of all standardized event kinds and their specific structures.
+    link: /kinds/
+  - icon: 🏷️
+    title: Tags
+    details: In-depth reference for all Nostr tag types, their purposes, and proper formatting.
+    link: /tags/
+  - icon: 📜
+    title: NIPs
+    details: Nostr Implementation Possibilities (NIPs).
+    link: https://github.com/nostr-protocol/nips
+  - icon: 🔎
+    title: Searchable
+    details: Find exactly what you need with our full-text search across all documentation.
+  - icon: 🤖
+    title: AI-Ready
+    details: Structured in a way that both humans and AI can easily comprehend and utilize.
+    link: /mcp
+  - icon: 🧩
+    title: Examples
+    details: Real-world examples of Nostr events and implementations to aid understanding.
+  - icon: 🔄
+    title: Up-to-date
+    details: Regularly maintained to reflect the latest developments in the Nostr ecosystem.
+---
+
+## What is Nostr?
+
+Nostr (Notes and Other Stuff Transmitted by Relays) is a simple, open protocol that enables global, decentralized, and censorship-resistant social media. It uses cryptographic keypairs for identity, simple event objects for data, and relay servers for distribution.
+
+## What is Nostrbook?
+
+Nostrbook serves as a central registry of well-structured, detailed documentation about all aspects of the Nostr protocol. While the official [NIPs repository](https://github.com/nostr-protocol/nips) defines the specifications, Nostrbook expands upon them with:
+
+- Clearer explanations
+- Structured navigation
+- Detailed examples
+- Cross-references between related concepts
+- Consistent formatting
+
+This makes it easier for developers, users, and even AI systems to understand and work with Nostr.
+
+## Key Concepts
+
+<div class="vp-features">
+  <div class="vp-feature-item">
+    <article class="vp-feature-text">
+      <h3>Events</h3>
+      <p>The fundamental data structure in Nostr. Every piece of information is an event with a consistent structure including content, metadata, and a cryptographic signature.</p>
+      <a href="/protocol/event">Learn about Event Structure →</a>
+    </article>
+  </div>
+
+  <div class="vp-feature-item">
+    <article class="vp-feature-text">
+      <h3>Relays</h3>
+      <p>Servers that store and forward events. Users can choose which relays to publish to and read from, creating a resilient and decentralized network.</p>
+    </article>
+  </div>
+
+  <div class="vp-feature-item">
+    <article class="vp-feature-text">
+      <h3>Filters</h3>
+      <p>Query parameters that allow clients to request specific events from relays based on various criteria like authors, event types, or content references.</p>
+      <a href="/protocol/filter">Understand Filters →</a>
+    </article>
+  </div>
+
+  <div class="vp-feature-item">
+    <article class="vp-feature-text">
+      <h3>NIPs</h3>
+      <p>Nostr Implementation Possibilities - documents that specify protocol extensions and conventions that allow the ecosystem to evolve.</p>
+    </article>
+  </div>
+</div>
+
+## For AI and Programmatic Access
+
+Nostrbook conforms to the [llms.txt specification](https://llmstxt.org/), making its content easily accessible for AI agents and programmatic tools. All documentation is available in markdown format by appending `.md` to any page URL:
+
+<div class="vp-features">
+  <div class="vp-feature-item">
+    <article class="vp-feature-text">
+      <h3>Model Context Protocol (MCP)</h3>
+      <p>Nostrbook now provides a <a href="/mcp">Model Context Protocol (MCP) integration</a> that allows AI tools to access Nostr documentation directly through function calls, without relying on training data or scraping.</p>
+      <p>With the MCP extension, AI assistants can:</p>
+      <ul>
+        <li>Read NIPs directly from the official repository</li>
+        <li>Access structured kind and tag documentation</li>
+        <li>Get up-to-date protocol information</li>
+      </ul>
+      <a href="/mcp">Learn about Nostr MCP Integration →</a>
+    </article>
+  </div>
+
+  <div class="vp-feature-item">
+    <article class="vp-feature-text">
+      <h3>llms.txt File</h3>
+      <p>Our <a href="/llms.txt">llms.txt</a> file at the root of the site provides a structured overview of key resources for AI agents, including:</p>
+      <ul>
+        <li>Project overview and context</li>
+        <li>Links to most important documentation</li>
+        <li>Logical organization of content</li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="vp-feature-item">
+    <article class="vp-feature-text">
+      <h3>Markdown Endpoints</h3>
+      <p>Access clean, structured markdown versions of any page by appending <code>.md</code> to URLs:</p>
+      <ul>
+        <li><code>/kinds/1.md</code> - Text Note kind in markdown</li>
+        <li><code>/tags/e.md</code> - Event reference tag in markdown</li>
+        <li><code>/protocol/event.md</code> - Event structure in markdown</li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="vp-feature-item">
+    <article class="vp-feature-text">
+      <h3>Directory Index Files</h3>
+      <p>Access directory indexes in markdown format:</p>
+      <ul>
+        <li><code>/kinds/index.md</code> - All event kinds</li>
+        <li><code>/tags/index.md</code> - All tags</li>
+        <li><code>/protocol/index.md</code> - Protocol documentation</li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="vp-feature-item">
+    <article class="vp-feature-text">
+      <h3>Programmatic Usage</h3>
+      <p>AI agents can programmatically construct URLs to find information:</p>
+      <ul>
+        <li>For kind <em>N</em>: <code>/kinds/N.md</code></li>
+        <li>For tag <em>T</em>: <code>/tags/T.md</code></li>
+        <li>For protocol doc: <code>/protocol/SECTION.md</code></li>
+      </ul>
+    </article>
+  </div>
+</div>
+
+<style>
+.vp-features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin: 2rem 0;
+}
+
+.vp-feature-item {
+  background-color: var(--vp-c-bg-soft);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.vp-feature-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 640px) {
+  .vp-features {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

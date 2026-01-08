@@ -59,6 +59,18 @@
 
     // 2. Build Zap Request (NIP-57)
     const relays = await getActiveRelays();
+    
+    // Parse coordinates if available
+    let kind: number | undefined;
+    let d: string | undefined;
+    if (target.coordinates) {
+      const parts = target.coordinates.split(':');
+      if (parts.length >= 3) {
+        kind = parseInt(parts[0], 10);
+        d = parts.slice(2).join(':');
+      }
+    }
+
     const zapRequestRes = await zapService.makeZapRequestEvent(
       target.pubkey,
       amount,
@@ -66,8 +78,8 @@
       {
         id: target.eventId,
         pubkey: target.pubkey,
-        kind: target.type === 'event' ? 30023 : undefined, // Simplify for now, logic inside creates tags
-        d: target.coordinates ? target.coordinates.split(':').pop() : undefined
+        kind,
+        d
       },
       message
     );
@@ -245,6 +257,10 @@
           <p class="text-center text-xs text-slate-400 mt-2">
             Payment not detected automatically yet. <br/> Check your wallet.
           </p>
+
+          <div class="mt-6">
+            <Button variant="secondary" class="w-full justify-center" onclick={close}>Close</Button>
+          </div>
         </div>
 
       {:else if step === 'success'}

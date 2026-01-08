@@ -2,6 +2,7 @@ import { subscriptions } from '$lib/infra/nostr/subscriptions';
 import { ok, type Result } from '$lib/domain/result';
 import type { NostrEvent } from 'nostr-tools';
 import { getCached, setCached } from '$lib/services/cacheService';
+import { metadataRefreshService } from '$lib/services/metadataRefreshService';
 
 export function getBookTag(event: NostrEvent): string | null {
   return event.tags.find(t => t[0] === 'book')?.[1] || null;
@@ -28,6 +29,7 @@ export const annotationService = {
       counts[bookTag] = (counts[bookTag] ?? 0) + 1;
     }
 
+    metadataRefreshService.notifyAnnotationUpdate(counts);
     return ok(counts);
   }
 };

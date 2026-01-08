@@ -21,6 +21,7 @@ type Task<T> = {
 
 const queue: Task<Result<SocialCounts>>[] = [];
 let running = 0;
+const pendingRequests = new Map<string, Promise<Result<SocialCounts>>>();
 
 function drainQueue() {
     if (running >= MAX_SOCIAL_STATS_CONCURRENCY) return;
@@ -73,5 +74,15 @@ async function fetchSocialCounts(coords: { kind: number; pubkey: string; d: stri
 }
 
 export async function getSocialCounts(coords: { kind: number; pubkey: string; d: string }): Promise<Result<SocialCounts>> {
-    return enqueueSocialStatsRequest(coords);
+    const key = `${coords.kind}:${coords.pubkey}:${coords.d}`;
+    if (pendingRequests.has(key)) {
+        return pendingRequests.get(key)!;
+    }
+    const promise = enqueueSocialStatsRequest(coords);
+    pendingRequests.set(key, promise);
+    try {
+        return await promise;
+    } finally {
+        pendingRequests.delete(key);
+    }
 }

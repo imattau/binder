@@ -3,6 +3,13 @@ const SCHEMA_HASH = '4139e76fddaa7ddb5c441c2a96d486f595592530b72a26cc873952b52c9
 const SCHEMA_REFERENCE = 'docs/binder-schema.md';
 const SCHEMA_URL = 'https://github.com/mattthomson/binder/blob/master/docs/binder-schema.md';
 
+export type SchemaInfo = {
+  version: string;
+  hash: string;
+  reference: string;
+  url: string;
+};
+
 export type SchemaAnnouncement = {
   kind: 30019;
   created_at: number;

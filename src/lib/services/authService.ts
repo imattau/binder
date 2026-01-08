@@ -15,16 +15,6 @@ import { goto } from '$app/navigation';
 import { initiateNostrConnectSession, createResilientNip46Signer } from './nostrConnectService';
 import { ensureAdminAssignment } from './adminService';
 import { profileService } from './profileService';
-import { DEFAULT_RELAYS } from '$lib/infra/nostr/pool';
-
-function parseRelaysFromUrl(input: string): string[] {
-    try {
-        const parsed = new URL(input);
-        return parsed.searchParams.getAll('relay');
-    } catch {
-        return [];
-    }
-}
 
 export const authService = {
     async loginWithNip07(): Promise<Result<string>> {
@@ -61,12 +51,8 @@ export const authService = {
             }
             
             const localSigner = new NDKPrivateKeySigner(localKey);
-            const manualRelays = parseRelaysFromUrl(bunkerUrl);
-            const signer = createResilientNip46Signer(
-                bunkerUrl,
-                localSigner,
-                manualRelays.length > 0 ? manualRelays : DEFAULT_RELAYS
-            );
+            
+            const signer = createResilientNip46Signer(bunkerUrl, localSigner);
             
             // For manual bunkerUrl (could be NIP-05), we might still need blockUntilReady
             // but we'll wrap it in a timeout and RPC check

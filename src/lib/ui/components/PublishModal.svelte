@@ -1,24 +1,27 @@
 <script lang="ts">
   import Button from './Button.svelte';
   import Icon from './Icon.svelte';
+  import Badge from './Badge.svelte';
   import type { PublishResult } from '$lib/services/publisherService';
 
-  export let isOpen = false;
-  export let isPublishing = false;
-  export let results: PublishResult[] | null = null;
-  export let error: { message: string } | null = null;
-  export let onConfirm: () => void;
-  export let onClose: () => void;
+  let { 
+    isOpen, 
+    isPublishing,
+    results, 
+    error,
+    onConfirm, 
+    onClose 
+  } = $props();
 
-  let step = 0;
+  let step = $state(0); 
 
-  $: {
+  $effect(() => {
       if (isOpen && !isPublishing && !results && !error) {
           step = 0; // Reset
       }
       if (isPublishing) step = 1;
       if (results || error) step = 2;
-  }
+  });
 </script>
 
 {#if isOpen}

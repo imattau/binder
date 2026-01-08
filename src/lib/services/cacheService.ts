@@ -38,6 +38,37 @@ function purgeExpired(entries: Record<string, CacheEntry<unknown>>) {
   }
 }
 
+type CacheListener = (value: unknown) => void;
+const listeners = new Map<string, Set<CacheListener>>();
+
+function notifyCacheUpdate(key: string, value: unknown) {
+  const set = listeners.get(key);
+  if (!set) return;
+  for (const listener of set) {
+    try {
+      listener(value);
+    } catch (err) {
+      console.error('Cache listener error', err);
+    }
+  }
+}
+
+export function onCacheUpdate(key: string, listener: CacheListener) {
+  const set = listeners.get(key) ?? new Set();
+  set.add(listener);
+  listeners.set(key, set);
+  return () => offCacheUpdate(key, listener);
+}
+
+export function offCacheUpdate(key: string, listener: CacheListener) {
+  const set = listeners.get(key);
+  if (!set) return;
+  set.delete(listener);
+  if (set.size === 0) {
+    listeners.delete(key);
+  }
+}
+
 export function getCached<T>(key: string, ttlMs: number): T | null {
   const entries = loadEntries();
   purgeExpired(entries);
@@ -59,4 +90,5 @@ export function setCached<T>(key: string, value: T, ttlMs: number) {
     expiresAt: Date.now() + ttlMs
   };
   saveEntries(entries);
+  notifyCacheUpdate(key, value);
 }

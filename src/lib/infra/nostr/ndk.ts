@@ -17,8 +17,8 @@ function emptyNip05Response(): Response {
 	});
 }
 
-async function nip05Fetch(input: RequestInfo, init?: RequestInit) {
-	const url = typeof input === 'string' ? input : input.url;
+async function nip05Fetch(input: string | URL | Request, init?: RequestInit) {
+	const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
 	if (shouldSkipNip05Fetch(url)) {
 		return emptyNip05Response();

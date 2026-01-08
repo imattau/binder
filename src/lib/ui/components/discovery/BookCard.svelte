@@ -62,7 +62,7 @@ import { onMount } from 'svelte';
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div 
   class="group flex flex-col h-full overflow-hidden rounded-xl bg-white border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-violet-100 cursor-pointer"
-  onclick={() => goto(`/read/${coordinate}`)} 
+  onclick={() => goto(`/read/${coordinate()}`)} 
 >
   <div class="p-5 flex gap-5">
       <!-- Cover Placeholder -->

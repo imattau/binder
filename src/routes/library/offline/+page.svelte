@@ -9,8 +9,8 @@
   import Badge from '$lib/ui/components/Badge.svelte';
   import type { PublishedBook } from '$lib/domain/types';
 
-  let offlineBooks: PublishedBook[] = [];
-  let loading = true;
+  let offlineBooks = $state<PublishedBook[]>([]);
+  let loading = $state(true);
 
   onMount(async () => {
       // Direct Dexie query for 'pinned' index if we added it, or filter

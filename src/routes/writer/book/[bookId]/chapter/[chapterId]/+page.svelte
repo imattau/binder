@@ -29,8 +29,6 @@
   let isUploadingImage = $state(false);
   let imageUploadError = $state('');
 
-  let removeBeforeNavigate: (() => void) | null = null;
-
   onMount(() => {
     if (!$authStore.pubkey) {
         goto('/login');
@@ -39,7 +37,7 @@
     if (chapterId) {
         currentChapterStore.load(chapterId);
     }
-    removeBeforeNavigate = beforeNavigate(() => {
+    beforeNavigate(() => {
         void currentChapterStore.save();
     });
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -54,9 +52,6 @@
       // Final save on exit if dirty
       if ($currentChapterStore.isDirty) {
           currentChapterStore.save();
-      }
-      if (removeBeforeNavigate) {
-          removeBeforeNavigate();
       }
       window.removeEventListener('beforeunload', handleBeforeUnload);
   });

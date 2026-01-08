@@ -4,9 +4,8 @@
   import Icon from '../Icon.svelte';
   import type { SavedBook } from '$lib/domain/types';
 
-  export let book: SavedBook;
-  export let onClose: () => void;
-  let newShelfName = '';
+  let { book, onClose }: { book: SavedBook, onClose: () => void } = $props();
+  let newShelfName = $state('');
 
   function toggle(shelfId: string) {
       libraryStore.toggleShelf(book, shelfId);

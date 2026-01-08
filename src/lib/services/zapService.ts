@@ -199,17 +199,27 @@ export const zapService = {
         }
     },
 
-    async getZapReceipts(eventCoords: { kind: number; pubkey: string; d: string }): Promise<Result<NostrEvent[]>> {
+    async getZapReceipts(target: { kind?: number; pubkey: string; d?: string; eventId?: string }): Promise<Result<NostrEvent[]>> {
         const relays = await getActiveRelays();
         if (relays.length === 0) return ok([]);
 
-        const tag = `${eventCoords.kind}:${eventCoords.pubkey}:${eventCoords.d}`;
+        const filter: any = { kinds: [9735] };
+        
+        if (target.eventId) {
+            filter['#e'] = [target.eventId];
+        }
+        
+        if (target.kind && target.pubkey && target.d) {
+             filter['#a'] = [`${target.kind}:${target.pubkey}:${target.d}`];
+        }
+
+        // Fallback to profile zap if no specific event target
+        if (!filter['#e'] && !filter['#a']) {
+             filter['#p'] = [target.pubkey];
+        }
 
         try {
-            const events = await fetchEvents(relays, [{
-                kinds: [9735],
-                '#a': [tag]
-            }]);
+            const events = await fetchEvents(relays, [filter]);
             return ok(events);
         } catch (error) {
             return fail({ message: 'Failed to fetch zap receipts', cause: error });

@@ -4,6 +4,7 @@ import type { LocalChapterDraft } from '$lib/domain/types';
 import { ok, fail, type Result } from '$lib/domain/result';
 import { v4 as uuidv4 } from 'uuid';
 import { draftSyncService } from './draftSyncService';
+import { syncStatusStore } from '$lib/state/syncStatusStore';
 
 export const chapterDraftService = {
     async createChapter(bookId: string, title: string): Promise<Result<LocalChapterDraft>> {
@@ -33,6 +34,7 @@ export const chapterDraftService = {
         book.updatedAt = Date.now();
         await bookRepo.save(book);
         void draftSyncService.syncBook(bookId);
+        syncStatusStore.markDirty(bookId);
 
         return ok(chapter);
     },
@@ -50,6 +52,7 @@ export const chapterDraftService = {
         const res = await chapterRepo.save(chapter);
         if (res.ok) {
             void draftSyncService.syncBook(chapter.bookId);
+            syncStatusStore.markDirty(chapter.bookId);
         }
         return res;
     },
@@ -63,6 +66,7 @@ export const chapterDraftService = {
             const res = await bookRepo.save(book);
             if (res.ok) {
                 void draftSyncService.syncBook(bookId);
+                syncStatusStore.markDirty(bookId);
             }
             return res;
         }
@@ -84,6 +88,7 @@ export const chapterDraftService = {
             book.updatedAt = Date.now();
             await bookRepo.save(book);
             void draftSyncService.syncBook(book.id);
+            syncStatusStore.markDirty(book.id);
         }
 
         return ok(undefined);
@@ -116,6 +121,7 @@ export const chapterDraftService = {
         book.updatedAt = Date.now();
         await bookRepo.save(book);
         void draftSyncService.syncBook(bookId);
+        syncStatusStore.markDirty(bookId);
 
         return ok(chapter);
     }

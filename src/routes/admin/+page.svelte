@@ -224,6 +224,7 @@ import { pageConfigStore } from '$lib/state/pageConfigStore';
   <CollapsibleSection
     title="Default Relays"
     description="These relays populate new user sessions when no custom list exists."
+    startOpen={true}
   >
     <Card>
       <div class="space-y-3">

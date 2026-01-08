@@ -30,7 +30,7 @@
   }
 </script>
 
-<nav class="sticky top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-md shadow-sm transition-all duration-300">
+<nav class="sticky top-0 z-50 w-full border-b top-nav-shell backdrop-blur-md shadow-sm transition-all duration-300">
   <div class="container mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex h-16 items-center justify-between">
       <!-- Logo -->
@@ -109,7 +109,7 @@
     </div>
   </div>
   {#if showMobileMenu}
-    <div class="md:hidden border-t border-white/10 bg-white/90 backdrop-blur-md shadow-sm">
+  <div class="md:hidden border-t top-nav-mobile backdrop-blur-md shadow-sm">
       <div class="space-y-2 px-4 py-4">
         <a href="/discover" class="block text-sm font-medium text-slate-700 hover:text-slate-900">Discover</a>
         {#if $authStore.pubkey}

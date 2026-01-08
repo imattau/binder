@@ -28,3 +28,19 @@ Binder supports NIP-57 Zaps to allow users to tip authors and content directly.
 ## Receipt Detection
 
 The application displays a "Zap Sent" success message immediately upon successful WebLN payment or manual completion. The social counts (Zap count) on the page are updated via the standard background relay subscriptions when the Kind 9735 receipt is propagated.
+
+## Technical Details (AI-Ready)
+
+### Nostr Kinds Used
+- **Kind 9734**: Zap Request (signed by the user).
+- **Kind 9735**: Zap Receipt (published by the Lightning Service Provider).
+- **Kind 0**: Metadata (used to resolve `lud16` Lightning address).
+- **Kind 30003**: Long-form Content (Book).
+- **Kind 30023**: Long-form Content (Chapter).
+
+### Tagging
+Binder implements NIP-57 tagging conventions:
+- `p` tag for the recipient pubkey.
+- `a` tag for addressable events (Book/Chapter).
+- `e` tag for specific event IDs (if available).
+- `relays` tag containing the relays for the zap receipt.
