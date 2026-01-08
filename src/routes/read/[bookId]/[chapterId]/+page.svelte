@@ -34,9 +34,23 @@ let lastRecordedChapterId = '';
       
       if ($authStore.pubkey) {
           await wotStore.load();
-          const pubkey = $authStore.pubkey;
-          const d = $currentChapterStore.chapter?.d || chapterId;
-          socialStore.load({ kind: 30023, pubkey, d });
+      }
+
+      // Load Social Stats
+      let statsPubkey = '';
+      let statsD = '';
+      
+      const targetId = $currentChapterStore.chapter?.id || chapterId;
+      if (targetId.includes(':')) {
+          const parts = targetId.split(':');
+          if (parts.length >= 3) {
+              statsPubkey = parts[1];
+              statsD = parts.slice(2).join(':');
+          }
+      }
+      
+      if (statsPubkey && statsD) {
+          socialStore.load({ kind: 30023, pubkey: statsPubkey, d: statsD });
       }
   });
 

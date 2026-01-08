@@ -13,9 +13,11 @@ export const relaySettingsRepo = {
 
     async save(relays: RelaySetting[]): Promise<Result<void>> {
         try {
+            // Unwrap proxies (Svelte 5)
+            const plainRelays = relays.map(r => ({ ...r }));
             await db.transaction('rw', db.relays, async () => {
                 await db.relays.clear();
-                await db.relays.bulkAdd(relays);
+                await db.relays.bulkAdd(plainRelays);
             });
             return ok(undefined);
         } catch (e) {

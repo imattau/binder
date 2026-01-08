@@ -14,11 +14,14 @@
   import Badge from '$lib/ui/components/Badge.svelte';
   import Input from '$lib/ui/components/Input.svelte';
   import { mediaService } from '$lib/services/mediaService';
+  import type { DraftSnapshot } from '$lib/domain/types';
+  import { formatDistanceToNow } from 'date-fns';
 
   const bookId = $page.params.bookId || '';
   const chapterId = $page.params.chapterId || '';
   
   let isEditingTitle = $state(false);
+  let showHistory = $state(false);
   let editTitle = $state('');
   let autoSaveTimer: ReturnType<typeof setTimeout>;
   let codeMirrorRef = $state<{
@@ -72,7 +75,13 @@
   async function handleSnapshot() {
       const reason = prompt('Snapshot reason (optional):') || 'Manual snapshot';
       await currentChapterStore.createSnapshot(reason);
-      alert('Snapshot created!');
+  }
+
+  function restoreSnapshot(snapshot: DraftSnapshot) {
+      if (confirm(`Restore snapshot "${snapshot.reason}"? This will overwrite your current draft.`)) {
+          handleContentChange(snapshot.contentMd);
+          showHistory = false;
+      }
   }
 
   function toggleStatus() {
@@ -194,17 +203,8 @@
             </div>
             
             <div class="flex items-center justify-end gap-2 w-1/3">
-                 <Button variant="secondary" onclick={handleSnapshot}>
+                 <Button variant={showHistory ? 'primary' : 'secondary'} onclick={() => showHistory = !showHistory}>
                     <Icon name="ClockCounterClockwise" />
-                 </Button>
-                 <Button 
-                    variant={$editorUiStore.pane === 'preview' ? 'ghost' : 'secondary'}
-                    onclick={() => setEditorPane('preview')}
-                 >
-                    <div class="flex items-center gap-2">
-                        <Icon name="Eye" />
-                        Review
-                    </div>
                  </Button>
                  <Button 
                     variant={$currentChapterStore.chapter.status === 'ready' ? 'secondary' : 'primary'} 
@@ -299,4 +299,55 @@
     </div>
 {:else}
     <div class="text-center py-12 text-gray-500">Chapter not found</div>
+{/if}
+
+{#if showHistory}
+  <div class="fixed inset-0 z-50 flex justify-end">
+     <!-- Backdrop -->
+     <!-- svelte-ignore a11y_click_events_have_key_events -->
+     <!-- svelte-ignore a11y_no_static_element_interactions -->
+     <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" onclick={() => showHistory = false}></div>
+     
+     <!-- Drawer -->
+     <div class="relative w-80 bg-white shadow-2xl h-full border-l border-gray-200 flex flex-col animate-in slide-in-from-right duration-200">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-gray-900 flex items-center gap-2">
+                <Icon name="ClockCounterClockwise" /> History
+            </h3>
+            <button onclick={() => showHistory = false} class="text-gray-400 hover:text-gray-600">
+                <Icon name="X" />
+            </button>
+        </div>
+        
+        <div class="p-4 border-b border-gray-100">
+            <Button class="w-full justify-center" variant="secondary" onclick={handleSnapshot}>
+                <Icon name="Plus" /> Create Snapshot
+            </Button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            {#each $currentChapterStore.snapshots as snap}
+               <div class="group border border-gray-100 rounded-lg p-3 hover:border-violet-200 hover:bg-violet-50 transition-colors bg-white">
+                   <div class="flex justify-between items-start mb-1">
+                       <span class="text-xs font-semibold text-gray-500">
+                           {formatDistanceToNow(snap.createdAt)} ago
+                       </span>
+                   </div>
+                   <p class="text-sm font-medium text-gray-900 mb-2">{snap.reason}</p>
+                   <div class="text-xs text-gray-400 mb-3 font-mono">
+                       {snap.contentMd.length} chars
+                   </div>
+                   <Button variant="secondary" class="w-full justify-center text-xs h-8" onclick={() => restoreSnapshot(snap)}>
+                       Restore
+                   </Button>
+               </div>
+            {/each}
+            {#if $currentChapterStore.snapshots.length === 0}
+                <div class="text-center text-gray-400 text-sm py-8">
+                    No snapshots yet.
+                </div>
+            {/if}
+        </div>
+     </div>
+  </div>
 {/if}

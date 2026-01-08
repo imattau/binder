@@ -35,6 +35,7 @@ function createCurrentBookStore() {
                         const event = res.value;
                         const title = event.tags.find(t => t[0] === 'title')?.[1] || 'Untitled';
                         const summary = event.tags.find(t => t[0] === 'summary')?.[1];
+                        const cover = event.tags.find(t => t[0] === 'cover' || t[0] === 'image')?.[1];
                         const topics = event.tags.filter(t => t[0] === 't').map(t => t[1]).filter((value): value is string => Boolean(value));
                         const coAuthors = event.tags
                             .filter(t => t[0] === 'p')
@@ -99,6 +100,7 @@ function createCurrentBookStore() {
                                 d,
                                 title,
                                 summary,
+                                cover,
                                 tags: [],
                                 topics,
                                 coAuthors,

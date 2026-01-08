@@ -14,5 +14,8 @@ export function smartDndzone<T extends Item>(node: HTMLElement, params: Options<
     };
   }
 
+  // Note: svelte-dnd-action adds non-passive event listeners for touchstart,
+  // which may cause "Violation" warnings in Chrome console. This is expected
+  // for drag-and-drop libraries that need to prevent scrolling.
   return dndzone(node, params);
 }

@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import { chapterDraftService } from '$lib/services/chapterDraftService';
 import { snapshotService } from '$lib/services/snapshotService';
+import { draftSyncService } from '$lib/services/draftSyncService';
 import { contentCacheService } from '$lib/services/contentCacheService';
 import { authStore } from '$lib/state/authStore';
 import { get } from 'svelte/store';
@@ -132,6 +133,19 @@ function createCurrentChapterStore() {
                  const res = await snapshotService.createSnapshot(state.chapter.id, state.chapter.contentMd, reason);
                  if (res.ok) {
                      update(s => ({ ...s, snapshots: [res.value, ...s.snapshots] }));
+                     draftSyncService.publishChapterSnapshots(state.chapter.id).catch(console.error);
+                 }
+             }
+        },
+        loadHistory: async () => {
+             let state: CurrentChapterState | undefined;
+             update(s => { state = s; return s; });
+             
+             if (state?.chapter && !state.chapter.id.includes(':')) {
+                 await draftSyncService.restoreChapterSnapshots(state.chapter.id);
+                 const snapshotsRes = await snapshotService.getSnapshots(state.chapter.id);
+                 if (snapshotsRes.ok) {
+                     update(s => ({ ...s, snapshots: snapshotsRes.value }));
                  }
              }
         }

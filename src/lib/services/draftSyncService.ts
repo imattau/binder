@@ -2,18 +2,22 @@ import { SimplePool, type Filter, type NostrEvent, type EventTemplate, nip44 } f
 import { ok, fail, type Result } from '$lib/domain/result';
 import { authStore } from '$lib/state/authStore';
 import { get } from 'svelte/store';
-import type { LocalBook, LocalChapterDraft } from '$lib/domain/types';
+import type { LocalBook, LocalChapterDraft, DraftSnapshot } from '$lib/domain/types';
 import { bookRepo } from '$lib/infra/storage/bookRepo';
 import { chapterRepo } from '$lib/infra/storage/chapterRepo';
+import { snapshotRepo } from '$lib/infra/storage/snapshotRepo';
+import { snapshotService } from './snapshotService';
 import { settingsService } from './settingsService';
 import { signerService } from './signerService';
 import { subscriptions } from '$lib/infra/nostr/subscriptions';
 import { getScopedSyncKey, getConversationKey } from './syncKeyService';
 
-const SYNC_KIND = 40012;
+const SYNC_KIND = 30078;
+const SYNC_D_PREFIX = 'binder-book-snapshot';
+const SNAPSHOT_D_PREFIX = 'binder-snapshots';
 const SYNC_TAG = 'binder-sync';
 const SYNC_KEY_TAG = 'binder-sync-key';
-const SYNC_VERSION = 1;
+const SYNC_VERSION = 2;
 const SYNC_SCOPE = 'binder-sync';
 
 let lastSyncedEvent = '';
@@ -24,6 +28,13 @@ interface SnapshotPayload {
     action: 'snapshot' | 'delete';
     book?: LocalBook;
     chapters?: LocalChapterDraft[];
+}
+
+interface HistoryPayload {
+    chapterId: string;
+    snapshots: DraftSnapshot[];
+    version: number;
+    timestamp: number;
 }
 
 async function loadBook(bookId: string): Promise<Result<LocalBook>> {
@@ -88,7 +99,7 @@ async function publishPayload(payload: SnapshotPayload): Promise<Result<void>> {
         kind: SYNC_KIND,
         created_at: Math.floor(Date.now() / 1000),
         tags: [
-            ['d', payload.book?.d ?? ''],
+            ['d', `${SYNC_D_PREFIX}:${payload.book?.d ?? ''}`],
             [SYNC_TAG, 'draft-snapshot'],
             [SYNC_KEY_TAG, keyRes.value.pubKey],
             ['version', String(SYNC_VERSION)],
@@ -149,17 +160,19 @@ export const draftSyncService = {
         if (!keyRes.ok) return keyRes;
 
         const filter = {
-            kinds: [SYNC_KIND],
+            kinds: [SYNC_KIND, 40012], // Check both for backward compatibility
             authors: [auth.pubkey],
-            limit: 5
+            limit: 10
         } as Filter;
         (filter as Record<string, string[]>)['#' + SYNC_KEY_TAG] = [keyRes.value.pubKey];
 
-        const eventsRes = await subscriptions.fetchFeed(filter, 5);
+        const eventsRes = await subscriptions.fetchFeed(filter, 10);
         if (!eventsRes.ok) return eventsRes;
         if (eventsRes.value.length === 0) return ok(undefined);
 
-        const latest = eventsRes.value[0];
+        // Sort by created_at desc to get the latest across both kinds
+        const sorted = eventsRes.value.sort((a, b) => b.created_at - a.created_at);
+        const latest = sorted[0];
         if (latest.id === lastSyncedEvent) return ok(undefined);
 
         try {
@@ -176,6 +189,81 @@ export const draftSyncService = {
 
     async notifyBookDeletion(book: LocalBook): Promise<Result<void>> {
         return publishDeletion(book);
+    },
+
+    async publishChapterSnapshots(chapterId: string): Promise<Result<void>> {
+        const snapshotsRes = await snapshotService.getSnapshots(chapterId);
+        if (!snapshotsRes.ok || snapshotsRes.value.length === 0) return ok(undefined);
+
+        const payload: HistoryPayload = {
+            chapterId,
+            snapshots: snapshotsRes.value,
+            version: SYNC_VERSION,
+            timestamp: Date.now()
+        };
+
+        const relaysRes = await settingsService.getRelays();
+        if (!relaysRes.ok) return fail(relaysRes.error);
+        const relays = relaysRes.value.filter(r => r.enabled).map(r => r.url);
+        
+        const keyRes = await getScopedSyncKey(SYNC_SCOPE);
+        if (!keyRes.ok) return fail(keyRes.error);
+        const conversationKey = getConversationKey(keyRes.value);
+        const encrypted = nip44.encrypt(JSON.stringify(payload), conversationKey);
+
+        const template: EventTemplate = {
+            kind: SYNC_KIND,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [
+                ['d', `${SNAPSHOT_D_PREFIX}:${chapterId}`],
+                [SYNC_TAG, 'history-snapshot'],
+                [SYNC_KEY_TAG, keyRes.value.pubKey],
+                ['version', String(SYNC_VERSION)]
+            ],
+            content: encrypted
+        };
+
+        const signedRes = await signerService.signEvent(template);
+        if (!signedRes.ok) return fail(signedRes.error);
+
+        await publishEvent(relays, signedRes.value);
+        return ok(undefined);
+    },
+
+    async restoreChapterSnapshots(chapterId: string): Promise<Result<void>> {
+        const auth = get(authStore);
+        if (!auth.pubkey) return fail({ message: 'Not authenticated' });
+
+        const keyRes = await getScopedSyncKey(SYNC_SCOPE);
+        if (!keyRes.ok) return keyRes;
+
+        const filter = {
+            kinds: [SYNC_KIND],
+            authors: [auth.pubkey],
+            '#d': [`${SNAPSHOT_D_PREFIX}:${chapterId}`],
+            limit: 1
+        } as Filter;
+        (filter as Record<string, string[]>)['#' + SYNC_KEY_TAG] = [keyRes.value.pubKey];
+
+        const eventsRes = await subscriptions.fetchFeed(filter, 1);
+        if (!eventsRes.ok || eventsRes.value.length === 0) return ok(undefined);
+
+        const event = eventsRes.value[0];
+        try {
+            const conversationKey = getConversationKey(keyRes.value);
+            const decrypted = nip44.decrypt(event.content, conversationKey);
+            const payload = JSON.parse(decrypted) as HistoryPayload;
+            
+            for (const snap of payload.snapshots) {
+                // Ensure we don't overwrite newer if ID collision? 
+                // Snapshots are immutable usually.
+                // We just save.
+                await snapshotRepo.save(snap);
+            }
+        } catch (e: any) {
+             return fail({ message: 'Failed to restore history', cause: e });
+        }
+        return ok(undefined);
     }
 };
 

@@ -8,6 +8,7 @@
   import { authStore } from '$lib/state/authStore';
   import { offlineService } from '$lib/services/offlineService';
   import { exportService } from '$lib/services/exportService';
+  import { profileService } from '$lib/services/profileService';
   import SectionHeader from '$lib/ui/components/SectionHeader.svelte';
   import Button from '$lib/ui/components/Button.svelte';
   import Icon from '$lib/ui/components/Icon.svelte';
@@ -18,7 +19,7 @@
   import Badge from '$lib/ui/components/Badge.svelte';
   import { zapModalStore } from '$lib/state/zapModalStore';
   import { readingProgressStore } from '$lib/state/readingProgressStore';
-  import type { ReadingProgress } from '$lib/domain/types';
+  import type { ReadingProgress, AuthorProfile } from '$lib/domain/types';
 
   const bookId = $page.params.bookId || '';
   const socialStore = createSocialStore(); 
@@ -29,19 +30,61 @@
   let progressTarget = '';
   let lastReadIndex = $state(-1);
   let bookProgress = $state<ReadingProgress | undefined>(undefined);
+  let authorProfile = $state<Partial<AuthorProfile> | null>(null);
 
   onMount(async () => {
       await currentBookStore.load(bookId || '');
       
+      if ($currentBookStore.book?.id.includes(':')) {
+          const pubkey = $currentBookStore.book.id.split(':')[1];
+          if (pubkey) {
+              const profileRes = await profileService.loadProfile(pubkey);
+              if (profileRes.ok) {
+                  authorProfile = profileRes.value;
+              }
+          }
+      }
+      
       if ($authStore.pubkey) {
           await wotStore.load();
-          const pubkey = $authStore.pubkey;
-          const d = $currentBookStore.book?.d || bookId;
+          // Offline status checks only if logged in
+          const d = $currentBookStore.book?.d || (bookId.includes(':') ? bookId.split(':')[2] : bookId);
+          // If we are viewing a specific book (remote), we can try to check offline status
+          // The offline service might need the author pubkey too if it pins by address?
+          // offlineService.getOfflineStatus expects (pubkey, d).
+          // If it's a remote book, we pin it by Author:D. 
+          // If local, it's just D? Local books aren't pinned, they ARE local.
           
-          socialStore.load({ kind: 30003, pubkey, d });
+          // Actually, offline pinning is for REMOTE books.
+          let authorPubkey = '';
+          if (bookId.includes(':')) {
+             authorPubkey = bookId.split(':')[1];
+          }
           
-          const statusRes = await offlineService.getOfflineStatus(pubkey, d);
-          if (statusRes.ok) offlineStatus = statusRes.value;
+          if (authorPubkey) {
+             const statusRes = await offlineService.getOfflineStatus(authorPubkey, d);
+             if (statusRes.ok) offlineStatus = statusRes.value;
+          }
+      }
+
+      // Load Social Stats (Public)
+      let statsPubkey = '';
+      let statsD = '';
+      
+      if (bookId.includes(':')) {
+          const parts = bookId.split(':');
+          statsPubkey = parts[1];
+          statsD = parts[2];
+      } else if ($currentBookStore.book?.id.includes(':')) {
+          const parts = $currentBookStore.book.id.split(':')[1]; // Bug in split usage in my thought? string.split returns array.
+          // Correct: 
+          const p = $currentBookStore.book.id.split(':');
+          statsPubkey = p[1];
+          statsD = p[2];
+      }
+      
+      if (statsPubkey && statsD) {
+          socialStore.load({ kind: 30003, pubkey: statsPubkey, d: statsD });
       }
   });
 
@@ -146,7 +189,7 @@
 </script>
 
 {#if $currentBookStore.book}
-  <div class="max-w-2xl mx-auto">
+  <div class="max-w-5xl mx-auto">
       <div class="mb-8 flex justify-between items-center">
           <Button variant="secondary" onclick={() => goto('/discover')}>
              <div class="flex items-center gap-2">
@@ -176,66 +219,102 @@
           {/if}
       </div>
 
-      <header class="mb-8 text-center">
-          <h1 class="text-4xl font-bold text-slate-900 mb-4">{$currentBookStore.book.title}</h1>
-          {#if $currentBookStore.book.summary}
-              <p class="text-xl text-slate-500 italic">{$currentBookStore.book.summary}</p>
-          {/if}
-          
-          {#if offlineStatus.pinned}
-              <div class="mt-4 flex justify-center">
-                  <Badge 
-                      status={offlineStatus.ready ? 'success' : 'warning'} 
-                      label={offlineStatus.ready ? 'Ready Offline' : 'Caching...'} 
-                  />
-              </div>
-          {/if}
-      </header>
-      
-      <div class="mb-8">
-          <SocialActionBar 
-              stats={$socialStore} 
-              onReact={handleReact}
-              onBoost={handleBoost}
-              onReply={() => document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}
-              onZap={handleZap}
-          />
-      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <!-- Left Column: Cover & Actions -->
+          <div class="space-y-6">
+              {#if $currentBookStore.book.cover}
+                  <div class="aspect-[2/3] w-full relative rounded-lg shadow-xl overflow-hidden bg-slate-100">
+                      <img 
+                          src={$currentBookStore.book.cover} 
+                          alt="Cover" 
+                          class="absolute inset-0 h-full w-full object-cover"
+                      />
+                  </div>
+              {:else}
+                  <div class="aspect-[2/3] w-full rounded-lg shadow-md bg-slate-100 flex items-center justify-center text-slate-300">
+                      <Icon name="BookOpen" size={64} />
+                  </div>
+              {/if}
 
-      <Card title="Table of Contents">
-          {#if $authStore.pubkey && bookProgress}
-              <div class="mb-4 flex items-center justify-between text-xs text-slate-500">
-                  <span>
-                      Progress: {bookProgress.percent}% read
-                      {#if lastReadIndex >= 0}
-                          • Last read: Chapter {lastReadIndex + 1}
-                      {/if}
-                  </span>
-                  <Badge 
-                      status={bookProgress.percent === 100 ? 'success' : 'warning'} 
-                      label={bookProgress.percent === 100 ? 'Finished' : 'Reading'} 
-                  />
-              </div>
-          {/if}
-          <div class="space-y-2">
-              {#each $currentBookStore.chapters as chapter, i}
-                  <ListRow 
-                      icon="FileText" 
-                      title={`${i + 1}. ${chapter.title}`} 
-                      subtitle="Read Chapter"
-                      onclick={() => goto(`/read/${bookId}/${chapter.id}`)}
-                  >
-                      {#snippet actions()}
-                          {#if $authStore.pubkey && lastReadIndex >= i}
-                              <Badge status="success" label="Read" />
-                          {/if}
-                      {/snippet}
-                  </ListRow>
-              {/each}
+              <SocialActionBar 
+                  stats={$socialStore} 
+                  onReact={handleReact}
+                  onBoost={handleBoost}
+                  onReply={() => document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}
+                  onZap={handleZap}
+              />
           </div>
-      </Card>
+
+          <!-- Right Column: Details & TOC -->
+          <div class="md:col-span-2 space-y-8">
+              <div>
+                  <h1 class="text-4xl font-bold text-slate-900 mb-4 leading-tight">{$currentBookStore.book.title}</h1>
+                  
+                  {#if authorProfile}
+                      <div class="flex items-center gap-3 mb-6">
+                          {#if authorProfile.picture}
+                              <img src={authorProfile.picture} alt={authorProfile.name} class="h-12 w-12 rounded-full bg-slate-100 object-cover ring-2 ring-white shadow-sm" />
+                          {/if}
+                          <div>
+                              <p class="font-medium text-slate-900 text-lg">{authorProfile.displayName || authorProfile.name || 'Unknown Author'}</p>
+                              {#if $authStore.pubkey && $currentBookStore.book.id.includes(':') && $wotStore.follows.has($currentBookStore.book.id.split(':')[1])}
+                                  <Badge status="success" label="Following" />
+                              {/if}
+                          </div>
+                      </div>
+                  {/if}
+
+                  {#if $currentBookStore.book.summary}
+                      <p class="text-lg text-slate-600 leading-relaxed">{$currentBookStore.book.summary}</p>
+                  {/if}
+                  
+                  {#if offlineStatus.pinned}
+                      <div class="mt-4">
+                          <Badge 
+                              status={offlineStatus.ready ? 'success' : 'warning'} 
+                              label={offlineStatus.ready ? 'Ready Offline' : 'Caching...'} 
+                          />
+                      </div>
+                  {/if}
+              </div>
+
+              <Card title="Table of Contents">
+                  {#if $authStore.pubkey && bookProgress}
+                      <div class="mb-4 flex items-center justify-between text-xs text-slate-500">
+                          <span>
+                              Progress: {bookProgress.percent}% read
+                              {#if lastReadIndex >= 0}
+                                  • Last read: Chapter {lastReadIndex + 1}
+                              {/if}
+                          </span>
+                          <Badge 
+                              status={bookProgress.percent === 100 ? 'success' : 'warning'} 
+                              label={bookProgress.percent === 100 ? 'Finished' : 'Reading'} 
+                          />
+                      </div>
+                  {/if}
+                  <div class="space-y-2">
+                      {#each $currentBookStore.chapters as chapter, i}
+                          <ListRow 
+                              icon="FileText" 
+                              title={`${i + 1}. ${chapter.title}`} 
+                              subtitle="Read Chapter"
+                              onclick={() => goto(`/read/${bookId}/${chapter.id}`)}
+                          >
+                              {#snippet actions()}
+                                  {#if $authStore.pubkey && lastReadIndex >= i}
+                                      <Badge status="success" label="Read" />
+                                  {/if}
+                              {/snippet}
+                          </ListRow>
+                      {/each}
+                  </div>
+              </Card>
+          </div>
+      </div>
       
-      <div id="comments">
+      <div id="comments" class="max-w-3xl">
+          <h3 class="text-xl font-bold text-slate-900 mb-6">Comments & Discussion</h3>
           <CommentSection 
               comments={$socialStore.replies} 
               onReply={handleReply}

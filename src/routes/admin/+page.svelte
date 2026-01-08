@@ -51,9 +51,15 @@ import { pageConfigStore } from '$lib/state/pageConfigStore';
 
   async function addRelay() {
     if (!newRelayUrl.trim()) return;
+    const url = newRelayUrl.trim();
+    if (relays.some(r => r.url === url)) {
+      relayMessage = 'Relay already exists.';
+      return;
+    }
+
     isSavingRelays = true;
     relayMessage = '';
-    const updated = [...relays, { url: newRelayUrl.trim(), enabled: true }];
+    const updated = [...relays, { url, enabled: true }];
     const res = await relayDefaultsService.setDefaults(updated);
     isSavingRelays = false;
     if (res.ok) {
@@ -92,9 +98,15 @@ import { pageConfigStore } from '$lib/state/pageConfigStore';
 
   async function addMediaServer() {
     if (!newMediaUrl.trim()) return;
+    const url = newMediaUrl.trim();
+    if (mediaServers.some(s => s.url === url)) {
+      mediaMessage = 'Media server already exists.';
+      return;
+    }
+
     isSavingMedia = true;
     mediaMessage = '';
-    const updated = [...mediaServers, { url: newMediaUrl.trim(), enabled: true, provider: newMediaProvider }];
+    const updated = [...mediaServers, { url, enabled: true, provider: newMediaProvider }];
     const res = await mediaSettingsService.setMediaServers(updated);
     isSavingMedia = false;
     if (res.ok) {

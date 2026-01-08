@@ -21,9 +21,11 @@ export const mediaSettingsService = {
 
     async setMediaServers(servers: MediaServerSetting[]): Promise<Result<void>> {
         try {
+            // Unwrap proxies (Svelte 5)
+            const plainServers = servers.map(s => ({ ...s }));
             await db.transaction('rw', db.mediaServers, async () => {
                 await db.mediaServers.clear();
-                await db.mediaServers.bulkAdd(servers);
+                await db.mediaServers.bulkAdd(plainServers);
             });
             return ok(undefined);
         } catch (e) {
