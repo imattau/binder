@@ -99,7 +99,9 @@ sudo journalctl -u binder -f
 
 Binder’s built-in preview server listens on port 4173. Terminate TLS and expose the app through Caddy (recommended) or another reverse proxy:
 
-**Caddy example (`deploy/Caddyfile`)**
+**Reverse proxy examples**
+
+**Caddy (`deploy/Caddyfile`)**
 
 ```
 binder.example.com {
@@ -111,9 +113,17 @@ binder.example.com {
   }
   tls admin@binder.example.com
 }
+  ```
+
+Caddy automatically obtains Let’s Encrypt certificates, so install Caddy, drop this file into `/etc/caddy/Caddyfile`, and run `sudo systemctl restart caddy`.
+
+**Nginx (`deploy/nginx.conf`)** – point nginx at the preview server, terminate TLS with Certbot/Let’s Encrypt, and keep the standard redirect/headers:
+
+```
+deploy/nginx.conf
 ```
 
-Caddy automatically obtains Let's Encrypt certificates, so just install Caddy, drop this file into `/etc/caddy/Caddyfile`, and run `sudo systemctl restart caddy`. If you prefer nginx or HAProxy, point it at `localhost:4173` and layer on Certbot/ACME.
+For nginx you must run Certbot manually (`sudo certbot --nginx -d binder.example.com`) and reload nginx after renewals. Use `systemctl restart binder` after `npm run build` when releasing updates.
 
 ### 4. Firewall & maintenance
 
