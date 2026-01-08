@@ -21,6 +21,24 @@
     discoverStore.load();
   });
 
+  $: networkBooks = $discoverStore.network;
+  $: newAuthors = (() => {
+    const seen = new Set();
+    return networkBooks
+      .filter(item => {
+        const key = item.event.pubkey;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 4);
+  })();
+  $: hotReads = (() => {
+    return [...networkBooks]
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, 4);
+  })();
+
   const getTagValue = (event: NostrEvent, key: string) => event.tags.find(t => t[0] === key)?.[1];
 
   function getBookTitle(event: NostrEvent) {
@@ -159,6 +177,42 @@
   {:else}
       <!-- Authenticated Sections -->
       
+      {#if newAuthors.length > 0}
+          <section class="space-y-4">
+              <div class="flex items-center justify-between">
+                  <div>
+                      <h2 class="text-lg font-bold text-slate-900">New Authors</h2>
+                      <p class="text-xs text-slate-500">Authors publishing their first book on Binder.</p>
+                  </div>
+                  <a href="/writer" class="text-xs text-violet-600 hover:underline">Write on Binder</a>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                  {#each newAuthors as item}
+                      <BookCard {item} />
+                  {/each}
+              </div>
+          </section>
+      {/if}
+
+      {#if hotReads.length > 0}
+          <section class="space-y-4">
+              <div class="flex items-center justify-between">
+                  <div>
+                      <h2 class="text-lg font-bold text-slate-900">Hot Reads</h2>
+                      <p class="text-xs text-slate-500">Trending books weighted by likes, comments, boosts, and zaps.</p>
+                  </div>
+                  <Button variant="ghost" onclick={() => discoverStore.load(true)} disabled={$discoverStore.loading}>
+                      Refresh
+                  </Button>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {#each hotReads as item}
+                      <BookCard {item} />
+                  {/each}
+              </div>
+          </section>
+      {/if}
+
       {#if $discoverStore.network.length > 0}
           <section>
               <div class="flex items-center gap-2 mb-4">
