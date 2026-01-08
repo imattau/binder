@@ -61,6 +61,64 @@ Open `http://localhost:5173` and authenticate with a Nostr signer (NIP-07/NIP-46
 - Set up signer tooling (NIP-07 extension or NIP-46 wallet) for publishing and moderation.
 - Bundled builds expect environment variables defined via `vite.config.ts` if you have custom behavior (check that file for hints).
 
+## Deploying to a VPS
+
+Binder ships as a standard SvelteKit application, so you can host it on any VPS that can run Node.js 20+. The repository contains a helper (`scripts/setup-vps.sh`) plus sample service/reverse-proxy configs you can copy into production.
+
+### 1. Prep & build
+
+```bash
+# run from the repo root on the VPS
+./scripts/setup-vps.sh
+```
+
+This script installs Node.js 20+ (via NodeSource on Debian/Ubuntu), installs npm dependencies, and builds the project. It prints the next steps for wiring the systemd service and reverse proxy.
+
+### 2. Systemd unit
+
+Copy `deploy/binder.service` into `/etc/systemd/system/binder.service`, adjust `User`/`WorkingDirectory` to your environment, and create `/etc/default/binder` with overrides:
+
+```
+NODE_ENV=production
+BINDER_PORT=4173
+BINDER_HOST=0.0.0.0
+# optional relays/media presets
+RELAY_LIST=wss://relay.damus.io,wss://nos.lol
+MEDIA_SERVER=https://your.media.server/upload
+```
+
+Then enable and start the service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now binder.service
+sudo journalctl -u binder -f
+```
+
+### 3. Reverse proxy & TLS
+
+Binder’s built-in preview server listens on port 4173. Terminate TLS and expose the app through Caddy (recommended) or another reverse proxy:
+
+**Caddy example (`deploy/Caddyfile`)**
+
+```
+binder.example.com {
+  encode gzip
+  reverse_proxy localhost:4173
+  log {
+    output file /var/log/caddy/binder_access.log
+    format single_field common_log
+  }
+  tls admin@binder.example.com
+}
+```
+
+Caddy automatically obtains Let's Encrypt certificates, so just install Caddy, drop this file into `/etc/caddy/Caddyfile`, and run `sudo systemctl restart caddy`. If you prefer nginx or HAProxy, point it at `localhost:4173` and layer on Certbot/ACME.
+
+### 4. Firewall & maintenance
+
+Allow 80/443 (and the preview port only if you need direct access). Keep the service running via systemd, rebuild after `git pull` (`npm run build`), and restart the service. Logs live in `journalctl -u binder` and your reverse proxy’s log directory (e.g., `/var/log/caddy/`). For unattended updates, wrap `git pull && npm install && npm run build && sudo systemctl restart binder.service` in a cron/shell script.
+
 ## Contributing
 
 - Follow the existing code style (Svelte + Tailwind). Add tests (or describe manual steps) when touching complex services.

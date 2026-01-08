@@ -1,0 +1,17 @@
+[Unit]
+Description=Binder SvelteKit app
+After=network.target
+
+[Service]
+Type=simple
+User=binder
+WorkingDirectory=/var/www/binder
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/default/binder
+ExecStart=/usr/bin/npm run preview -- --host 0.0.0.0 --port ${BINDER_PORT:-4173}
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target
