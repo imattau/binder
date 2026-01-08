@@ -124,10 +124,10 @@ async function resolveMediaServer(override?: string): Promise<MediaServerSetting
 }
 
 async function uploadBlobToMedia(cover: Blob | File, serverUrl?: string): Promise<Result<string>> {
-    try {
-        const payload = cover instanceof File ? await compressImage(cover) : cover;
-        const target = await resolveMediaServer(serverUrl);
+    const payload = cover instanceof File ? await compressImage(cover) : cover;
+    const target = await resolveMediaServer(serverUrl);
 
+    try {
         const url =
             target.provider === 'blossom'
                 ? await performBlossomUpload(target.url, payload)
@@ -135,7 +135,22 @@ async function uploadBlobToMedia(cover: Blob | File, serverUrl?: string): Promis
 
         return ok(url);
     } catch (e: any) {
-        return fail({ message: 'Upload failed: ' + e.message });
+        const rawMessage = typeof e?.message === 'string' ? e.message : String(e);
+        const normalized = rawMessage.toLowerCase();
+        const needsFallback =
+            normalized.includes('failed to fetch') ||
+            normalized.includes('cors') ||
+            normalized.includes('access-control-allow-origin') ||
+            normalized.includes('net::err_failed');
+
+        if (needsFallback) {
+            return fail({
+                message:
+                    'Upload blocked (CORS/blocked relay). Please enable a CORS-friendly media server or try again later.'
+            });
+        }
+
+        return fail({ message: 'Upload failed: ' + rawMessage });
     }
 }
 
