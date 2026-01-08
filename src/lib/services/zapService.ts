@@ -1,7 +1,8 @@
 import { pool, getActiveRelays } from '$lib/infra/nostr/pool';
 import { ok, fail, type Result } from '$lib/domain/result';
-import type { NostrEvent } from 'nostr-tools';
+import type { NostrEvent, EventTemplate } from 'nostr-tools';
 import type { ZapDetails } from '$lib/domain/types';
+import { signerService } from './signerService';
 
 interface LnurlpResponse {
     callback: string;
@@ -12,6 +13,16 @@ interface LnurlpResponse {
     nostrPubkey?: string;
     nostrCommentAllowed?: number;
     metadata?: string;
+}
+
+// Add WebLN type definition
+declare global {
+  interface Window {
+    webln?: {
+      enable: () => Promise<void>;
+      sendPayment: (paymentRequest: string) => Promise<{ preimage: string }>;
+    };
+  }
 }
 
 async function fetchJson(url: string): Promise<Result<any>> {
@@ -71,15 +82,15 @@ function ensureLnurlResponse(data: LnurlpResponse): Result<ZapDetails> {
         return fail({ message: 'LNURL did not expose min or max sendable amount' });
     }
 
-        return ok({
-            callback: data.callback,
-            minSendable,
-            maxSendable,
-            allowsNostr: data.allowsNostr,
-            nostrPubkey: data.nostrPubkey,
-            metadata: data.metadata,
-            commentAllowed: data.nostrCommentAllowed
-        });
+    return ok({
+        callback: data.callback,
+        minSendable,
+        maxSendable,
+        allowsNostr: data.allowsNostr,
+        nostrPubkey: data.nostrPubkey,
+        metadata: data.metadata,
+        commentAllowed: data.nostrCommentAllowed
+    });
 }
 
 export const zapService = {
@@ -103,32 +114,89 @@ export const zapService = {
         return ensureLnurlResponse(lnurlRes.value as LnurlpResponse);
     },
 
-    async requestZap(details: ZapDetails, amount: number, nostrPubkey?: string, comment?: string): Promise<Result<string>> {
-        const minSendable = details.minSendable || 0;
-        const maxSendable = details.maxSendable || Infinity;
-        if (amount < minSendable || amount > maxSendable) {
+    async makeZapRequestEvent(
+        recipientPubkey: string,
+        amountSats: number,
+        relays: string[],
+        targetEvent?: { id?: string; kind?: number; pubkey?: string; d?: string },
+        comment?: string
+    ): Promise<Result<NostrEvent>> {
+        const amountMillisats = amountSats * 1000;
+        const tags: string[][] = [
+            ['relays', ...relays],
+            ['amount', amountMillisats.toString()],
+            ['p', recipientPubkey]
+        ];
+
+        if (targetEvent) {
+            if (targetEvent.id) {
+                tags.push(['e', targetEvent.id]);
+            }
+            if (targetEvent.kind && targetEvent.pubkey && targetEvent.d) {
+                tags.push(['a', `${targetEvent.kind}:${targetEvent.pubkey}:${targetEvent.d}`]);
+            }
+        }
+        
+        // Per NIP-57, if comment is present, add it.
+        // But note: 'content' of the event is the comment.
+        
+        const template: EventTemplate = {
+            kind: 9734,
+            created_at: Math.floor(Date.now() / 1000),
+            tags,
+            content: comment || ''
+        };
+
+        return signerService.signEvent(template);
+    },
+
+    async fetchInvoice(
+        details: ZapDetails,
+        amountSats: number,
+        zapRequestEvent?: NostrEvent,
+        comment?: string
+    ): Promise<Result<string>> {
+        const amountMillisats = amountSats * 1000;
+
+        // Validation
+        if (amountMillisats < details.minSendable || amountMillisats > details.maxSendable) {
             return fail({ message: 'Requested amount is outside the allowed range' });
         }
 
         const callbackUrl = new URL(details.callback);
-        callbackUrl.searchParams.set('amount', amount.toString());
+        callbackUrl.searchParams.set('amount', amountMillisats.toString());
 
-        if (details.allowsNostr && nostrPubkey) {
-            callbackUrl.searchParams.set('nostr', nostrPubkey);
-        }
-
-        if (comment) {
-            callbackUrl.searchParams.set('comment', comment);
+        if (zapRequestEvent) {
+             // Encode as JSON string
+            callbackUrl.searchParams.set('nostr', JSON.stringify(zapRequestEvent));
+        } else if (comment) {
+            // Fallback for non-NIP-57 (just comment)
+             callbackUrl.searchParams.set('comment', comment);
         }
 
         const invoiceRes = await fetchJson(callbackUrl.toString());
         if (!invoiceRes.ok) return fail({ message: 'Failed to request invoice', cause: invoiceRes.error });
 
-        if (!invoiceRes.value.pr) {
-            return fail({ message: 'LNURL callback did not return an invoice' });
+        const pr = invoiceRes.value.pr;
+        if (!pr) {
+            return fail({ message: 'LNURL callback did not return an invoice (pr field missing)' });
         }
 
-        return ok(invoiceRes.value.pr as string);
+        return ok(pr as string);
+    },
+
+    async payViaWebLN(invoice: string): Promise<Result<string>> {
+        if (typeof window === 'undefined' || !window.webln) {
+            return fail({ message: 'WebLN not available' });
+        }
+
+        try {
+            await window.webln.enable();
+            const result = await window.webln.sendPayment(invoice);
+            return ok(result.preimage);
+        } catch (error) {
+            return fail({ message: 'WebLN payment failed', cause: error });
+        }
     },
 
     async getZapReceipts(eventCoords: { kind: number; pubkey: string; d: string }): Promise<Result<NostrEvent[]>> {

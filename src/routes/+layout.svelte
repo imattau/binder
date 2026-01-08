@@ -6,10 +6,20 @@
   import { settingsService } from '$lib/services/settingsService';
   import { profileService } from '$lib/services/profileService';
   import { themeStore } from '$lib/state/themeStore';
+  import ZapModal from '$lib/ui/components/ZapModal.svelte';
+  import { zapModalStore } from '$lib/state/zapModalStore';
 
   let { children } = $props();
+  
+  let zapState = $state({ open: false, target: undefined as any, name: undefined as string | undefined });
 
   onMount(async () => {
+      zapModalStore.subscribe(state => {
+        zapState.open = state.open;
+        zapState.target = state.target;
+        zapState.name = state.name;
+      });
+
       const session = authStore.loadSession();
       if (session?.pubkey) {
           // Sync relays in background on load
@@ -30,3 +40,9 @@
 <AppShell>
   {@render children()}
 </AppShell>
+
+<ZapModal 
+  bind:open={zapState.open} 
+  target={zapState.target} 
+  name={zapState.name} 
+/>

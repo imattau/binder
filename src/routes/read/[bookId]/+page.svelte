@@ -16,9 +16,9 @@
   import SocialActionBar from '$lib/ui/components/social/SocialActionBar.svelte';
   import CommentSection from '$lib/ui/components/social/CommentSection.svelte';
   import Badge from '$lib/ui/components/Badge.svelte';
-  import ZapAmountModal from '$lib/ui/components/ZapAmountModal.svelte';
+  import { zapModalStore } from '$lib/state/zapModalStore';
   import { readingProgressStore } from '$lib/state/readingProgressStore';
-  import type { ReadingProgress, ZapDetails } from '$lib/domain/types';
+  import type { ReadingProgress } from '$lib/domain/types';
 
   const bookId = $page.params.bookId || '';
   const socialStore = createSocialStore(); 
@@ -29,13 +29,6 @@
   let progressTarget = '';
   let lastReadIndex = $state(-1);
   let bookProgress = $state<ReadingProgress | undefined>(undefined);
-  let zapModalOpen = $state(false);
-  let zapDetails = $state<ZapDetails | null>(null);
-  let zapTargetPubkey = $state('');
-  let zapInitialAmount = $state(0);
-  let zapError = $state('');
-  let zapLoading = $state(false);
-  let zapMessage = $state('');
 
   onMount(async () => {
       await currentBookStore.load(bookId || '');
@@ -142,34 +135,12 @@
       }
 
       const authorPubkey = parts[1];
-      const res = await socialStore.resolveZap(authorPubkey);
-      if (!res.ok) {
-          alert(res.error.message);
-          return;
-      }
-
-      zapDetails = res.value;
-      zapTargetPubkey = authorPubkey;
-      zapInitialAmount = res.value.minSendable;
-      zapMessage = '';
-      zapError = '';
-      zapModalOpen = true;
-  }
-
-  async function confirmZap(amount: number, comment?: string) {
-      if (!zapDetails || !zapTargetPubkey) return;
-      zapLoading = true;
-      zapMessage = comment ?? '';
-      const res = await socialStore.requestZap(zapDetails, amount, zapTargetPubkey, zapMessage);
-      zapLoading = false;
-      if (res.ok) {
-          zapModalOpen = false;
-          if (typeof window !== 'undefined') {
-              window.open(`lightning:${res.value}`, '_blank');
-          }
-      } else {
-          zapError = res.error.message;
-      }
+      
+      zapModalStore.open({
+          type: 'event',
+          pubkey: authorPubkey,
+          coordinates: book.id,
+      }, `Book: ${book.title}`);
   }
 
 </script>
@@ -230,33 +201,6 @@
               onZap={handleZap}
           />
       </div>
-
-      <ZapAmountModal
-          open={zapModalOpen}
-          minSendable={zapDetails?.minSendable ?? 0}
-          maxSendable={zapDetails?.maxSendable ?? 0}
-          initialAmount={zapInitialAmount}
-          loading={zapLoading}
-          error={zapError}
-          commentAllowed={zapDetails?.commentAllowed ?? 0}
-          defaultMessage={zapMessage}
-          onCancel={() => {
-              zapModalOpen = false;
-              zapMessage = '';
-          }}
-          onConfirm={confirmZap}
-      />
-
-      <ZapAmountModal
-          open={zapModalOpen}
-          minSendable={zapDetails?.minSendable ?? 0}
-          maxSendable={zapDetails?.maxSendable ?? 0}
-          initialAmount={zapInitialAmount}
-          loading={zapLoading}
-          error={zapError}
-          onCancel={() => zapModalOpen = false}
-          onConfirm={confirmZap}
-      />
 
       <Card title="Table of Contents">
           {#if $authStore.pubkey && bookProgress}

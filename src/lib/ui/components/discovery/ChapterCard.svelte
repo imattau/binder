@@ -7,6 +7,7 @@
   import { getSocialCounts, type SocialCounts } from '$lib/services/socialCountService';
   import { onMount } from 'svelte';
   import { markdownService } from '$lib/services/markdownService';
+  import { zapModalStore } from '$lib/state/zapModalStore';
 
   let { item }: { item: FeedItem } = $props();
   const e = $derived(item.event);
@@ -38,6 +39,15 @@
       statsLoading = false;
     }
   });
+
+  function handleZap(event: MouseEvent) {
+    event.stopPropagation();
+    zapModalStore.open({
+      type: 'event',
+      pubkey: e.pubkey,
+      coordinates: chapterCoord()
+    }, title());
+  }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -53,7 +63,16 @@ onclick={() => goto(`/read/${bookCoord()}/${chapterCoord()}?chapterEventId=${enc
           <Icon name="FileText" size={20} />
       </div>
       <div class="min-w-0 flex-1">
-          <h4 class="font-semibold text-slate-900 group-hover:text-violet-700 transition-colors truncate">{title()}</h4>
+          <div class="flex items-start justify-between gap-4">
+              <h4 class="font-semibold text-slate-900 group-hover:text-violet-700 transition-colors truncate">{title()}</h4>
+              <button 
+                class="flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-500 hover:bg-amber-50 hover:text-amber-600 transition-colors"
+                onclick={handleZap}
+              >
+                <Icon name="Lightning" size={12} weight="fill" />
+                Zap
+              </button>
+          </div>
           <p class="mt-1 text-sm text-slate-500 line-clamp-2 leading-relaxed">
               {@html markdownService.render(e.content)}
           </p>

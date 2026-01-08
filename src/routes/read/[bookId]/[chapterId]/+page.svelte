@@ -11,12 +11,12 @@ import { markdownService } from '$lib/services/markdownService';
 import { libraryStore } from '$lib/state/libraryStore';
 import { libraryService } from '$lib/services/libraryService';
 import { readingProgressStore } from '$lib/state/readingProgressStore';
-import type { LocalBook, LocalChapterDraft, ReadingProgress, ZapDetails } from '$lib/domain/types';
+import { zapModalStore } from '$lib/state/zapModalStore';
+import type { LocalBook, LocalChapterDraft, ReadingProgress } from '$lib/domain/types';
 import Button from '$lib/ui/components/Button.svelte';
 import Icon from '$lib/ui/components/Icon.svelte';
 import SocialActionBar from '$lib/ui/components/social/SocialActionBar.svelte';
 import CommentSection from '$lib/ui/components/social/CommentSection.svelte';
-import ZapAmountModal from '$lib/ui/components/ZapAmountModal.svelte';
 
   const bookId = $page.params.bookId || '';
   const chapterId = $page.params.chapterId || '';
@@ -25,13 +25,6 @@ import ZapAmountModal from '$lib/ui/components/ZapAmountModal.svelte';
 const socialStore = createSocialStore();
 let progressQueue: Promise<void> | null = null;
 let lastRecordedChapterId = '';
-let zapModalOpen = $state(false);
-let zapDetails = $state<ZapDetails | null>(null);
-let zapTargetPubkey = $state('');
-let zapInitialAmount = $state(0);
-let zapError = $state('');
-let zapLoading = $state(false);
-let zapMessage = $state('');
 
   onMount(async () => {
       await Promise.all([
@@ -76,40 +69,25 @@ let zapMessage = $state('');
   
   async function handleZap() {
        if (!$currentChapterStore.chapter) return;
-       const authorPubkey = $currentChapterStore.chapter.pubkey;
-       if (!authorPubkey) {
+       const chapter = $currentChapterStore.chapter;
+       
+       let pubkey = chapter.pubkey;
+       let coordinates = chapter.id;
+
+       if (!pubkey && chapter.id.includes(':')) {
+          pubkey = chapter.id.split(':')[1];
+       }
+       
+       if (!pubkey) {
            alert('Author public key is unavailable.');
            return;
        }
 
-       const res = await socialStore.resolveZap(authorPubkey);
-       if (!res.ok) {
-           alert(res.error.message);
-           return;
-       }
-
-      zapDetails = res.value;
-      zapTargetPubkey = authorPubkey;
-      zapInitialAmount = res.value.minSendable;
-      zapMessage = '';
-      zapError = '';
-      zapModalOpen = true;
-  }
-
-  async function confirmZap(amount: number, comment?: string) {
-      if (!zapDetails || !zapTargetPubkey) return;
-      zapLoading = true;
-      zapMessage = comment ?? '';
-      const res = await socialStore.requestZap(zapDetails, amount, zapTargetPubkey, zapMessage);
-      zapLoading = false;
-      if (res.ok) {
-          zapModalOpen = false;
-          if (typeof window !== 'undefined') {
-              window.open(`lightning:${res.value}`, '_blank');
-          }
-      } else {
-          zapError = res.error.message;
-      }
+      zapModalStore.open({
+          type: 'event',
+          pubkey,
+          coordinates: chapter.id.includes(':') ? chapter.id : `${30023}:${pubkey}:${chapter.d}`,
+      }, `Chapter: ${chapter.title}`);
   }
 
   $effect(() => {
@@ -228,22 +206,6 @@ let zapMessage = $state('');
               />
           </div>
       </div>
-
-      <ZapAmountModal
-          open={zapModalOpen}
-          minSendable={zapDetails?.minSendable ?? 0}
-          maxSendable={zapDetails?.maxSendable ?? 0}
-          initialAmount={zapInitialAmount}
-          loading={zapLoading}
-          error={zapError}
-          onCancel={() => {
-              zapModalOpen = false;
-              zapMessage = '';
-          }}
-          onConfirm={confirmZap}
-          commentAllowed={zapDetails?.commentAllowed ?? 0}
-          defaultMessage={zapMessage}
-      />
   </div>
 {:else}
   {#if $currentChapterStore.loading}
