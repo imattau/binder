@@ -8,7 +8,7 @@
   import Tabs from './Tabs.svelte';
 
   let { isOpen, onClose, onLogin }: { isOpen: boolean, onClose: () => void, onLogin: (pubkey: string) => void } = $props();
-  
+
   let mode = $state('scan'); // 'scan' | 'manual'
   let bunkerUrl = $state('');
   let isConnecting = $state(false);
@@ -16,49 +16,81 @@
   let qrDataUrl = $state('');
   let scanUri = $state('');
   let copyStatus = $state('');
+  let scanFlowToken: { cancelled: boolean } | null = null;
 
   // Reset state when opened
   $effect(() => {
-      if (isOpen) {
-          if (mode === 'scan' && !scanUri) {
-              startScanFlow();
-          }
-      } else {
+      if (!isOpen) {
+          cancelScanFlow();
           // Cleanup
           scanUri = '';
           qrDataUrl = '';
           isConnecting = false;
           error = '';
           copyStatus = '';
+          return;
+      }
+
+      if (mode !== 'scan') {
+          cancelScanFlow();
+          scanUri = '';
+          qrDataUrl = '';
+          isConnecting = false;
+          return;
+      }
+
+      if (mode === 'scan' && !scanUri) {
+          startScanFlow();
       }
   });
 
+  function cancelScanFlow() {
+      if (scanFlowToken) {
+          scanFlowToken.cancelled = true;
+          scanFlowToken = null;
+      }
+  }
+
   async function startScanFlow() {
+      if (scanFlowToken) return;
+
+      const token = { cancelled: false };
+      scanFlowToken = token;
+
       isConnecting = true;
       error = '';
-      const res = await authService.createNip46Connection();
-      
-      if (res.ok) {
-          scanUri = res.value.uri;
-          
-          try {
-              // Generate as Data URL (usually faster/less blocking than canvas drawing)
-              qrDataUrl = await QRCode.toDataURL(scanUri, { 
-                  width: 220, 
-                  margin: 1,
-                  errorCorrectionLevel: 'L' // Lower complexity for faster generation
-              });
 
-              const pubkey = await res.value.waitForUser();
-              onLogin(pubkey);
-              onClose();
-          } catch (e: any) {
-              if (isOpen) error = e.message || 'Connection failed';
-          } finally {
-              isConnecting = false;
+      try {
+          const res = await authService.createNip46Connection();
+          if (token.cancelled) return;
+
+          if (!res.ok) {
+              error = res.error.message;
+              return;
           }
-      } else {
-          error = res.error.message;
+
+          scanUri = res.value.uri;
+          if (token.cancelled) return;
+
+          qrDataUrl = await QRCode.toDataURL(scanUri, {
+              width: 220,
+              margin: 1,
+              errorCorrectionLevel: 'L' // Lower complexity for faster generation
+          });
+
+          if (token.cancelled) return;
+
+          const pubkey = await res.value.waitForUser();
+          if (token.cancelled) return;
+
+          onLogin(pubkey);
+          onClose();
+      } catch (e: any) {
+          if (!token.cancelled && isOpen) error = e.message || 'Connection failed';
+      } finally {
+          if (scanFlowToken === token) {
+              scanFlowToken = null;
+          }
           isConnecting = false;
       }
   }
