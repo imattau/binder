@@ -16,13 +16,18 @@
   import SocialActionBar from '$lib/ui/components/social/SocialActionBar.svelte';
   import CommentSection from '$lib/ui/components/social/CommentSection.svelte';
   import Badge from '$lib/ui/components/Badge.svelte';
+  import { readingProgressStore } from '$lib/state/readingProgressStore';
+  import type { ReadingProgress } from '$lib/domain/types';
 
   const bookId = $page.params.bookId || '';
   const socialStore = createSocialStore(); 
 
   // Offline State
-  let offlineStatus: { pinned: boolean; ready: boolean; error?: string } = { pinned: false, ready: false };
-  let isTogglingOffline = false;
+  let offlineStatus = $state<{ pinned: boolean, ready: boolean, error?: string }>({ pinned: false, ready: false });
+  let isTogglingOffline = $state(false);
+  let progressTarget = '';
+  let lastReadIndex = $state(-1);
+  let bookProgress = $state<ReadingProgress | undefined>(undefined);
 
   onMount(async () => {
       await currentBookStore.load(bookId || '');
@@ -36,6 +41,40 @@
           
           const statusRes = await offlineService.getOfflineStatus(pubkey, d);
           if (statusRes.ok) offlineStatus = statusRes.value;
+      }
+  });
+
+  $effect(() => {
+      if ($authStore.pubkey && bookId) {
+          const targetKey = `${bookId}:${$authStore.pubkey}`;
+          if (progressTarget !== targetKey) {
+              progressTarget = targetKey;
+              void readingProgressStore.load(bookId);
+          }
+          return;
+      }
+      if (progressTarget) {
+          progressTarget = '';
+      }
+  });
+
+  $effect(() => {
+      bookProgress = $readingProgressStore[bookId];
+  });
+
+  $effect(() => {
+      const progress = bookProgress;
+      if (progress && $currentBookStore.chapters.length > 0) {
+          const idx = $currentBookStore.chapters.findIndex(ch => ch.id === progress.lastChapterId);
+          if (idx >= 0) {
+              lastReadIndex = idx;
+          } else if (progress.percent > 0) {
+              lastReadIndex = Math.max(-1, Math.floor(($currentBookStore.chapters.length * progress.percent) / 100) - 1);
+          } else {
+              lastReadIndex = -1;
+          }
+      } else {
+          lastReadIndex = -1;
       }
   });
   
@@ -144,14 +183,34 @@
       </div>
 
       <Card title="Table of Contents">
+          {#if $authStore.pubkey && bookProgress}
+              <div class="mb-4 flex items-center justify-between text-xs text-slate-500">
+                  <span>
+                      Progress: {bookProgress.percent}% read
+                      {#if lastReadIndex >= 0}
+                          • Last read: Chapter {lastReadIndex + 1}
+                      {/if}
+                  </span>
+                  <Badge 
+                      status={bookProgress.percent === 100 ? 'success' : 'warning'} 
+                      label={bookProgress.percent === 100 ? 'Finished' : 'Reading'} 
+                  />
+              </div>
+          {/if}
           <div class="space-y-2">
               {#each $currentBookStore.chapters as chapter, i}
                   <ListRow 
                       icon="FileText" 
-                      title="{i + 1}. {chapter.title}" 
+                      title={`${i + 1}. ${chapter.title}`} 
                       subtitle="Read Chapter"
                       onclick={() => goto(`/read/${bookId}/${chapter.id}`)}
-                  />
+                  >
+                      {#snippet actions()}
+                          {#if $authStore.pubkey && lastReadIndex >= i}
+                              <Badge status="success" label="Read" />
+                          {/if}
+                      {/snippet}
+                  </ListRow>
               {/each}
           </div>
       </Card>

@@ -2,8 +2,9 @@
   import { page } from '$app/stores';
   import { authStore } from '$lib/state/authStore';
   import { authService } from '$lib/services/authService';
+  import { pageConfigStore } from '$lib/state/pageConfigStore';
   import Icon from './Icon.svelte';
-  let showMobileMenu = false;
+  let showMobileMenu = $state(false);
 
   const isActive = (path: string) => $page.url.pathname.startsWith(path);
 
@@ -34,8 +35,12 @@
     <div class="flex h-16 items-center justify-between">
       <!-- Logo -->
       <a href="/discover" class="flex items-center gap-2 group">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md transition-transform group-hover:scale-105">
-          <Icon name="Books" size={20} />
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md transition-transform group-hover:scale-105 overflow-hidden">
+          {#if $pageConfigStore.iconImage}
+            <img src={$pageConfigStore.iconImage} alt="Binder icon" class="h-full w-full object-cover" />
+          {:else}
+            <Icon name="Books" size={20} />
+          {/if}
         </div>
         <span class="text-lg font-bold tracking-tight text-slate-900">Binder</span>
       </a>

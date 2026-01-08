@@ -11,7 +11,8 @@ import { relayDefaultsService } from '$lib/services/relayDefaultsService';
   import { mediaSettingsService, DEFAULT_MEDIA_SERVERS } from '$lib/services/mediaSettingsService';
   import type { RelaySetting, MediaServerSetting } from '$lib/infra/storage/dexieDb';
   import { getStoredAdminPubkey, clearStoredAdminPubkey } from '$lib/services/adminService';
-  import { pageConfigService, type PageConfig } from '$lib/services/pageConfigService';
+import { pageConfigService, type PageConfig } from '$lib/services/pageConfigService';
+import { pageConfigStore } from '$lib/state/pageConfigStore';
   import { mediaService } from '$lib/services/mediaService';
 
   let relays = $state<RelaySetting[]>([]);
@@ -147,10 +148,11 @@ import { relayDefaultsService } from '$lib/services/relayDefaultsService';
     }
     try {
       const res = await mediaService.uploadCover(file);
-      if (res.ok) {
-        const updatedConfig = { ...pageConfig, [`${type}Image`]: res.value };
-        pageConfig = updatedConfig;
-        pageConfigService.saveConfig(updatedConfig);
+        if (res.ok) {
+          const updatedConfig = { ...pageConfig, [`${type}Image`]: res.value };
+          pageConfig = updatedConfig;
+          pageConfigService.saveConfig(updatedConfig);
+          pageConfigStore.setConfig(updatedConfig);
         if (type === 'cover') {
           coverMessage = 'Cover saved.';
         } else {

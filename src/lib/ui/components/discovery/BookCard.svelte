@@ -12,6 +12,7 @@ import { onMount } from 'svelte';
   const title = $derived(e.tags.find(t => t[0] === 'title')?.[1] || 'Untitled Book');
   const summary = $derived(e.tags.find(t => t[0] === 'summary')?.[1]);
   const addedAt = $derived(new Date(e.created_at * 1000));
+  const coverUrl = $derived(e.tags.find(t => t[0] === 'cover')?.[1]);
   
   // Construct coordinate: kind:pubkey:d
   const d = $derived(e.tags.find(t => t[0] === 'd')?.[1] || '');
@@ -43,8 +44,14 @@ import { onMount } from 'svelte';
 >
   <div class="p-5 flex gap-5">
       <!-- Cover Placeholder -->
-      <div class="w-20 aspect-[2/3] rounded bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-300 shadow-inner shrink-0 group-hover:from-violet-50 group-hover:to-indigo-50 group-hover:text-violet-300 transition-colors">
-          <Icon name="BookOpen" size={28} />
+      <div class="w-20 aspect-[2/3] overflow-hidden rounded bg-gradient-to-br from-slate-100 to-slate-200 shadow-inner shrink-0 ring-1 ring-inset ring-slate-100 transition-all group-hover:ring-violet-200">
+          {#if coverUrl}
+              <img src={coverUrl} alt={`Cover for ${title}`} class="h-full w-full object-cover" />
+          {:else}
+              <div class="flex h-full w-full items-center justify-center text-slate-300 group-hover:text-violet-300">
+                  <Icon name="BookOpen" size={28} />
+              </div>
+          {/if}
       </div>
       
       <div class="flex-1 min-w-0">
@@ -65,7 +72,7 @@ import { onMount } from 'svelte';
               <span>{formatDistanceToNow(addedAt)} ago</span>
           </div>
       </div>
-</div>
+  </div>
   <div class="px-5 pb-5 pt-0">
       <div class="flex flex-wrap gap-6 text-[11px] text-slate-500">
           <div class="flex items-center gap-1">

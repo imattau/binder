@@ -13,11 +13,13 @@
   import ListRow from '$lib/ui/components/ListRow.svelte';
   import { formatDistanceToNow } from 'date-fns';
 
-  let activeShelfId = 'favorites';
+  let activeShelfId = $state('favorites');
 
-  $: if (!$authStore.pubkey) {
-      goto('/login');
-  }
+  $effect(() => {
+      if (!$authStore.pubkey) {
+          goto('/login');
+      }
+  });
 
   onMount(() => {
     if ($authStore.pubkey) {
@@ -25,14 +27,14 @@
     }
   });
 
-  let activeBooks = [];
-  $: activeBooks = $libraryStore.books.filter(b => b.shelves.includes(activeShelfId));
+  const activeBooks = $derived($libraryStore.books.filter(b => b.shelves.includes(activeShelfId)));
   
   function toFeedItem(book: any): any {
       return {
           event: {
               tags: [
                   ['title', book.title],
+                  ...(book.coverUrl ? [['cover', book.coverUrl]] : []),
                   ['d', book.d],
                   ['summary', book.summary || '']
               ],
