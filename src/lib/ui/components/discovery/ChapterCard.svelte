@@ -6,6 +6,7 @@
   import { formatDistanceToNow } from 'date-fns';
   import { getSocialCounts, type SocialCounts } from '$lib/services/socialCountService';
   import { onMount } from 'svelte';
+  import { markdownService } from '$lib/services/markdownService';
 
   let { item }: { item: FeedItem } = $props();
   const e = $derived(item.event);
@@ -54,7 +55,9 @@
       </div>
       <div class="min-w-0 flex-1">
           <h4 class="font-semibold text-slate-900 group-hover:text-violet-700 transition-colors truncate">{title}</h4>
-          <p class="mt-1 text-sm text-slate-500 line-clamp-2 leading-relaxed">{e.content.slice(0, 150)}...</p>
+          <p class="mt-1 text-sm text-slate-500 line-clamp-2 leading-relaxed">
+              {@html markdownService.render(e.content)}
+          </p>
           
           <div class="mt-2 flex items-center gap-2 text-xs font-medium text-slate-400">
                <span>{e.pubkey.slice(0, 6)}...</span>
