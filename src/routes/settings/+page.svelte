@@ -9,7 +9,9 @@
   import Card from '$lib/ui/components/Card.svelte';
   import Button from '$lib/ui/components/Button.svelte';
   import Input from '$lib/ui/components/Input.svelte';
+  import Icon from '$lib/ui/components/Icon.svelte';
   import type { MediaServerSetting } from '$lib/infra/storage/dexieDb';
+  import { schemaService } from '$lib/services/schemaService';
 
   let newRelayUrl = $state('');
   let newMediaServerUrl = $state('');
@@ -72,6 +74,9 @@
       settingsStore.save(updated);
   }
 
+  const schemaInfo = schemaService.getCurrentSchema();
+  let schemaCopied = $state(false);
+
   function addMediaServer() {
       if (!newMediaServerUrl) return;
       const current = $mediaSettingsStore;
@@ -92,6 +97,20 @@
           s.url === url ? { ...s, enabled: !s.enabled } : s
       );
       mediaSettingsStore.save(updated);
+  }
+
+  async function copySchemaAnnouncement() {
+      if (typeof navigator === 'undefined' || !navigator.clipboard) return;
+      const payload = JSON.stringify(schemaService.buildAnnouncement(), null, 2);
+      try {
+          await navigator.clipboard.writeText(payload);
+          schemaCopied = true;
+          setTimeout(() => {
+              schemaCopied = false;
+          }, 2000);
+      } catch (err) {
+          console.error('Unable to copy schema event', err);
+      }
   }
 </script>
 
@@ -181,5 +200,36 @@
         Standard servers use NIP-96 uploads; Blossom servers require NIP-98 signed authorization.
       </p>
     </div>
+  </div>
+</Card>
+
+<Card title="Binder Schema">
+  <div class="space-y-3">
+    <p class="text-sm text-slate-600">
+      Version <span class="font-semibold">{schemaInfo.version}</span> · Hash <span class="font-mono text-xs">{schemaInfo.hash}</span>
+    </p>
+    <p class="text-xs text-slate-500">
+      Schema reference: <a href={schemaInfo.url} target="_blank" rel="noreferrer" class="text-violet-600 hover:underline">View docs/binder-schema.md</a>
+    </p>
+    <div class="flex flex-wrap gap-2">
+      <Button variant="secondary" size="sm" onclick={copySchemaAnnouncement}>
+        <div class="flex items-center gap-2">
+          <Icon name="FileText" />
+          Copy schema event
+        </div>
+      </Button>
+      <a
+        href={schemaInfo.url}
+        target="_blank"
+        rel="noreferrer"
+        class="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+      >
+        <Icon name="ArrowRight" />
+        Open schema doc
+      </a>
+    </div>
+    {#if schemaCopied}
+      <p class="text-xs text-emerald-500">Schema event JSON copied to clipboard.</p>
+    {/if}
   </div>
 </Card>

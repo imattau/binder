@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { currentBookStore } from '$lib/state/currentBookStore';
+  import { get } from 'svelte/store';
   import { chapterDraftService } from '$lib/services/chapterDraftService';
   import { bookService } from '$lib/services/bookService';
   import { publisherService, type PublishResult } from '$lib/services/publisherService';
@@ -18,22 +19,61 @@
   import AddExistingChapterModal from '$lib/ui/components/AddExistingChapterModal.svelte';
   import { dndzone, type DndEvent } from 'svelte-dnd-action';
   import { flip } from 'svelte/animate';
-  import type { LocalChapterDraft } from '$lib/domain/types';
+  import type { LocalChapterDraft, LocalBook } from '$lib/domain/types';
   import type { NostrEvent } from 'nostr-tools';
   import { authStore } from '$lib/state/authStore';
   import { writerBooksStore } from '$lib/state/writerBooksStore';
+  import { bookFingerprint } from '$lib/utils/publicationFingerprint';
 
   const bookId = $page.params.bookId || '';
-  let isEditingTitle = false;
-  let editTitle = '';
-  let isUploadingCover = false;
-  let showExistingModal = false;
+  let isEditingTitle = $state(false);
+  let editTitle = $state('');
+  let isUploadingCover = $state(false);
+  let showExistingModal = $state(false);
 
   // Publishing State
-  let showPublishModal = false;
-  let isPublishing = false;
-  let publishResults: PublishResult[] | null = null;
-  let publishError: { message: string } | null = null;
+  let showPublishModal = $state(false);
+  let isPublishing = $state(false);
+  let publishResults = $state<PublishResult[] | null>(null);
+  let publishError = $state<{ message: string } | null>(null);
+  let currentHash = $state('');
+  let lastPublishedHash = $state<string | null>(null);
+  let publishLabel = $state('Publish Book');
+  let publishDisabled = $state(true);
+
+  function handlePublishButtonClick() {
+      if (publishDisabled) return;
+      showPublishModal = true;
+  }
+
+  type CurrentBookState = {
+      book: LocalBook | null;
+      chapters: LocalChapterDraft[];
+      loading: boolean;
+  };
+
+  async function updatePublishState(stateParam?: CurrentBookState) {
+      const state = stateParam ?? get(currentBookStore);
+      if (!state.book) {
+          currentHash = '';
+          lastPublishedHash = null;
+          publishLabel = 'Publish Book';
+          publishDisabled = true;
+          return;
+      }
+
+      const computedHash = await bookFingerprint(state.book);
+      currentHash = computedHash;
+      lastPublishedHash = state.book.publishedHash ?? null;
+      const hasPublished = Boolean(lastPublishedHash);
+      const dirty = !hasPublished || computedHash !== lastPublishedHash;
+      publishLabel = hasPublished ? (dirty ? 'Update Book' : 'Up to date') : 'Publish Book';
+      publishDisabled = state.chapters.length === 0 || isPublishing || (hasPublished && !dirty);
+  }
+
+  const unsubscribe = currentBookStore.subscribe((state) => {
+      void updatePublishState(state);
+  });
 
   onMount(() => {
     if (!$authStore.pubkey) {
@@ -44,6 +84,8 @@
         currentBookStore.load(bookId);
     }
   });
+
+  onDestroy(() => unsubscribe());
 
   async function handleCreateChapter() {
     const title = prompt('Chapter Title:');
@@ -97,14 +139,22 @@
       if (!$currentBookStore.book) return;
       
       isPublishing = true;
+      await updatePublishState();
       publishResults = null;
       publishError = null;
       
       const res = await publisherService.publishBook($currentBookStore.book, $currentBookStore.chapters);
       
       isPublishing = false;
+      await updatePublishState();
       if (res.ok) {
           publishResults = res.value;
+          if ($currentBookStore.book) {
+              const fingerprint = await bookFingerprint($currentBookStore.book);
+              const updatedBook = { ...$currentBookStore.book, publishedHash: fingerprint };
+              $currentBookStore.book = updatedBook;
+          }
+          await updatePublishState();
       } else {
           publishError = res.error;
       }
@@ -191,11 +241,11 @@
             </div>
             <div class="flex gap-2">
                 <Button 
-                    onclick={() => showPublishModal = true} 
-                    disabled={$currentBookStore.chapters.length === 0}
+                    onclick={handlePublishButtonClick} 
+                    disabled={publishDisabled}
                 >
                     <div class="flex items-center gap-2">
-                        <Icon name="CloudCheck" /> Publish Book
+                        <Icon name="CloudCheck" /> {publishLabel}
                     </div>
                 </Button>
                 <Button variant="secondary" onclick={() => showExistingModal = true}>

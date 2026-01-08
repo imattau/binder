@@ -17,18 +17,22 @@
   const bookD = $derived(bookTag ? bookTag[1] : '');
   // Assume same author if not specified (standard binder flow)
   // If bookTag has 3 parts (address), use it. Else construct.
-  const bookCoord = $derived(bookD.includes(':') ? bookD : `30003:${e.pubkey}:${bookD}`);
+  const bookCoord = $derived(() => (bookD.includes(':') ? bookD : `30003:${e.pubkey}:${bookD}`));
 
   // Chapter Coordinate
-  const d = $derived(e.tags.find(t => t[0] === 'd')?.[1]);
-  const chapterCoord = $derived(`30023:${e.pubkey}:${d}`);
-  const chapterD = d || '';
-  const coord = { kind: 30023, pubkey: e.pubkey, d: chapterD };
-  let stats: SocialCounts = { likes: 0, comments: 0, boosts: 0, zaps: 0 };
+  const chapterTag = $derived(e.tags.find(t => t[0] === 'd'));
+  const chapterD = $derived(chapterTag ? chapterTag[1] : '');
+  const chapterCoord = $derived(() => `30023:${e.pubkey}:${chapterD}`);
+  let stats = $state<SocialCounts>({ likes: 0, comments: 0, boosts: 0, zaps: 0 });
   let statsLoading = $state(true);
 
   onMount(async () => {
       try {
+          const coord = {
+              kind: 30023,
+              pubkey: e.pubkey,
+              d: chapterD || ''
+          };
           const res = await getSocialCounts(coord);
           if (res.ok) {
               stats = res.value;

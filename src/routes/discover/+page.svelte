@@ -69,7 +69,7 @@
             alt="Binder cover"
             class="absolute inset-0 h-full w-full object-cover"
           />
-          <div class="absolute inset-0 bg-gradient-to-br from-black/30 via-transparent to-transparent" />
+          <div class="absolute inset-0 bg-gradient-to-br from-black/30 via-transparent to-transparent"></div>
         </div>
         <div class="px-6 py-6 sm:px-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div class="flex items-center gap-3">
@@ -83,7 +83,7 @@
             </div>
           </div>
           <Button variant="secondary" class="hidden lg:inline-flex items-center gap-2" onclick={() => goto('/writer')}>
-            <Icon name="Pen" size={16} />
+            <Icon name="PencilSimple" size={16} />
             Publish Your Book
           </Button>
         </div>
@@ -124,7 +124,7 @@
               {#if $bookLayoutStore === 'grid'}
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {#each $discoverStore.global as item}
-                          <BookCard {item} />
+                          <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                       {/each}
                   </div>
               {:else}
@@ -188,7 +188,7 @@
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
                   {#each newAuthors as item}
-                      <BookCard {item} />
+                      <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                   {/each}
               </div>
           </section>
@@ -207,7 +207,7 @@
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {#each hotReads as item}
-                      <BookCard {item} />
+                      <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                   {/each}
               </div>
           </section>
@@ -222,7 +222,7 @@
               {#if $bookLayoutStore === 'grid'}
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {#each $discoverStore.network as item}
-                          <BookCard {item} />
+                          <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                       {/each}
                   </div>
               {:else}
@@ -258,7 +258,7 @@
               {#if $bookLayoutStore === 'grid'}
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {#each $discoverStore.books as item}
-                          <BookCard {item} />
+                          <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                       {/each}
                   </div>
               {:else}

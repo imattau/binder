@@ -7,7 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { getSocialCounts, type SocialCounts } from '$lib/services/socialCountService';
 import { onMount } from 'svelte';
 
-  let { item }: { item: FeedItem } = $props();
+  let { item, annotationCount = 0 }: { item: FeedItem; annotationCount?: number } = $props();
   const e = $derived(item.event);
   const title = $derived(e.tags.find(t => t[0] === 'title')?.[1] || 'Untitled Book');
   const summary = $derived(e.tags.find(t => t[0] === 'summary')?.[1]);
@@ -16,16 +16,18 @@ import { onMount } from 'svelte';
   
   // Construct coordinate: kind:pubkey:d
   const d = $derived(e.tags.find(t => t[0] === 'd')?.[1] || '');
-  const coordinate = $derived(`${e.kind}:${e.pubkey}:${d}`);
+  const coordinate = $derived(() => `${e.kind}:${e.pubkey}:${d}`);
   
-  const coordD = d || '';
-  const coords = { kind: e.kind, pubkey: e.pubkey, d: coordD };
-
-  let stats: SocialCounts = { likes: 0, comments: 0, boosts: 0, zaps: 0 };
+  let stats = $state<SocialCounts>({ likes: 0, comments: 0, boosts: 0, zaps: 0 });
   let statsLoading = $state(true);
 
   onMount(async () => {
       try {
+          const coords = {
+              kind: e.kind,
+              pubkey: e.pubkey,
+              d: d || ''
+          };
           const res = await getSocialCounts(coords);
           if (res.ok) {
               stats = res.value;
@@ -92,5 +94,11 @@ import { onMount } from 'svelte';
               <span>{statsLoading ? '...' : stats.zaps}</span>
           </div>
       </div>
+      {#if annotationCount > 0}
+          <div class="mt-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <Icon name="ChatCircle" size={12} />
+              <span>{annotationCount} annotation{annotationCount === 1 ? '' : 's'}</span>
+          </div>
+      {/if}
   </div>
 </div>
