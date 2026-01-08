@@ -43,7 +43,7 @@ export interface NostrConnectResponse {
 export function createResilientNip46Signer(
   remoteId: string,
   localSigner: NDKPrivateKeySigner,
-  relayUrls: string[] = defaultHandshakeRelays
+  relayUrls?: string[]
 ): NDKNip46Signer {
   const signer = new NDKNip46Signer(ndk, remoteId, localSigner, relayUrls);
 
