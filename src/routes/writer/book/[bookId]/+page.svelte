@@ -18,7 +18,8 @@
   import EmptyState from '$lib/ui/components/EmptyState.svelte';
   import PublishModal from '$lib/ui/components/PublishModal.svelte';
   import AddExistingChapterModal from '$lib/ui/components/AddExistingChapterModal.svelte';
-  import { dndzone, type DndEvent } from 'svelte-dnd-action';
+  import { type DndEvent } from 'svelte-dnd-action';
+  import { smartDndzone } from '$lib/actions/smartDndzone';
   import { flip } from 'svelte/animate';
   import type { LocalChapterDraft, LocalBook, AuthorProfile } from '$lib/domain/types';
   import { nip19 } from 'nostr-tools';
@@ -138,7 +139,7 @@
 
       const res = await bookService.updateBook(updatedBook);
       if (res.ok) {
-          $currentBookStore.book = updatedBook;
+          void currentBookStore.load(bookId);
           void writerBooksStore.load();
       } else {
           topicError = res.error?.message ?? 'Failed to save book metadata';
@@ -523,7 +524,7 @@
          />
       {:else}
          <section 
-            use:dndzone={{items: $currentBookStore.chapters, flipDurationMs: 300, dropTargetStyle: { border: 'none', outline: 'none' }}} 
+            use:smartDndzone={{items: $currentBookStore.chapters, flipDurationMs: 300, dropTargetStyle: { border: 'none', outline: 'none' }}}
             onconsider={handleDndConsider} 
             onfinalize={handleDndFinalize}
             class="space-y-2 outline-none"
