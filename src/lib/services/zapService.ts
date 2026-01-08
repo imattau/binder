@@ -1,4 +1,4 @@
-import { pool, getActiveRelays } from '$lib/infra/nostr/pool';
+import { pool, getActiveRelays, fetchEvents } from '$lib/infra/nostr/pool';
 import { ok, fail, type Result } from '$lib/domain/result';
 import type { NostrEvent, EventTemplate } from 'nostr-tools';
 import type { ZapDetails } from '$lib/domain/types';
@@ -206,10 +206,10 @@ export const zapService = {
         const tag = `${eventCoords.kind}:${eventCoords.pubkey}:${eventCoords.d}`;
 
         try {
-            const events = await pool.querySync(relays, {
+            const events = await fetchEvents(relays, [{
                 kinds: [9735],
                 '#a': [tag]
-            });
+            }]);
             return ok(events);
         } catch (error) {
             return fail({ message: 'Failed to fetch zap receipts', cause: error });
