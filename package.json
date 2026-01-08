@@ -46,6 +46,7 @@
 		"nostr-tools": "^2.19.4",
 		"phosphor-svelte": "^3.0.1",
 		"qrcode": "^1.5.4",
+		"sanitize-html": "^2.8.1",
 		"svelte-dnd-action": "^0.9.69",
 		"uuid": "^13.0.0"
 	}
