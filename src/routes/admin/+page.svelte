@@ -14,24 +14,24 @@ import { relayDefaultsService } from '$lib/services/relayDefaultsService';
   import { pageConfigService, type PageConfig } from '$lib/services/pageConfigService';
   import { mediaService } from '$lib/services/mediaService';
 
-  let relays: RelaySetting[] = [];
-  let mediaServers: MediaServerSetting[] = [];
-  let newRelayUrl = '';
-  let newMediaUrl = '';
-  let newMediaProvider: 'standard' | 'blossom' | 'custom' = 'standard';
-  let relayMessage = '';
-  let mediaMessage = '';
-  let adminPubkey: string | null = null;
-  let adminMessage = '';
-  let isSavingRelays = false;
-  let isSavingMedia = false;
-  let pageConfig = pageConfigService.getConfig();
-  let coverInput: HTMLInputElement | null = null;
-  let iconInput: HTMLInputElement | null = null;
-  let isUploadingCover = false;
-  let isUploadingIcon = false;
-  let coverMessage = '';
-  let iconMessage = '';
+  let relays = $state<RelaySetting[]>([]);
+  let mediaServers = $state<MediaServerSetting[]>([]);
+  let newRelayUrl = $state('');
+  let newMediaUrl = $state('');
+  let newMediaProvider = $state<'standard' | 'blossom' | 'custom'>('standard');
+  let relayMessage = $state('');
+  let mediaMessage = $state('');
+  let adminPubkey = $state<string | null>(null);
+  let adminMessage = $state('');
+  let isSavingRelays = $state(false);
+  let isSavingMedia = $state(false);
+  let pageConfig = $state<PageConfig>(pageConfigService.getConfig());
+  let coverInput = $state<HTMLInputElement | null>(null);
+  let iconInput = $state<HTMLInputElement | null>(null);
+  let isUploadingCover = $state(false);
+  let isUploadingIcon = $state(false);
+  let coverMessage = $state('');
+  let iconMessage = $state('');
 
   const layoutInfo = [
     { label: 'Default Relays', description: 'These relays are used by default when no user-specific list is available.' },
@@ -146,7 +146,7 @@ import { relayDefaultsService } from '$lib/services/relayDefaultsService';
       iconMessage = '';
     }
     try {
-      const res = await mediaService.uploadImage(file);
+      const res = await mediaService.uploadCover(file);
       if (res.ok) {
         const updatedConfig = { ...pageConfig, [`${type}Image`]: res.value };
         pageConfig = updatedConfig;

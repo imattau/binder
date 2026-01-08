@@ -123,7 +123,11 @@ async function resolveMediaServer(override?: string): Promise<MediaServerSetting
     return res.value[0];
 }
 
-async function uploadBlobToMedia(cover: Blob | File, serverUrl?: string): Promise<Result<string>> {
+async function uploadBlobToMedia(
+    cover: Blob | File,
+    serverUrl?: string,
+    options?: { allowInlineFallback?: boolean }
+): Promise<Result<string>> {
     const payload = cover instanceof File ? await compressImage(cover) : cover;
     const target = await resolveMediaServer(serverUrl);
 
@@ -143,6 +147,11 @@ async function uploadBlobToMedia(cover: Blob | File, serverUrl?: string): Promis
             normalized.includes('access-control-allow-origin') ||
             normalized.includes('net::err_failed');
 
+        if (needsFallback && options?.allowInlineFallback) {
+            console.warn('Media upload blocked by CORS, falling back to inline data URL');
+            const localUrl = await blobToDataUrl(payload);
+            return ok(localUrl);
+        }
         if (needsFallback) {
             return fail({
                 message:
@@ -155,6 +164,6 @@ async function uploadBlobToMedia(cover: Blob | File, serverUrl?: string): Promis
 }
 
 export const mediaService = {
-    uploadCover: uploadBlobToMedia,
-    uploadImage: uploadBlobToMedia
+    uploadCover: (file: Blob | File) => uploadBlobToMedia(file, undefined, { allowInlineFallback: true }),
+    uploadImage: (file: Blob | File) => uploadBlobToMedia(file)
 };
