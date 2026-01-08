@@ -99,7 +99,7 @@
         </div>
       </div>
       
-      <!-- Mobile Menu Button (Placeholder) -->
+      <!-- Mobile Menu Button -->
       <button class="md:hidden p-2 text-slate-500" onclick={() => showMobileMenu = !showMobileMenu}>
         <span class="sr-only">Open menu</span>
         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -111,20 +111,20 @@
   {#if showMobileMenu}
   <div class="md:hidden border-t top-nav-mobile backdrop-blur-md shadow-sm">
       <div class="space-y-2 px-4 py-4">
-        <a href="/discover" class="block text-sm font-medium text-slate-700 hover:text-slate-900">Discover</a>
+        <a href="/discover" class="block text-sm font-medium text-slate-700 hover:text-slate-900" onclick={() => showMobileMenu = false}>Discover</a>
         {#if $authStore.pubkey}
-          <a href="/library" class="block text-sm font-medium text-slate-700 hover:text-slate-900">Library</a>
-          <a href="/writer" class="block text-sm font-medium text-slate-700 hover:text-slate-900">Write</a>
+          <a href="/library" class="block text-sm font-medium text-slate-700 hover:text-slate-900" onclick={() => showMobileMenu = false}>Library</a>
+          <a href="/writer" class="block text-sm font-medium text-slate-700 hover:text-slate-900" onclick={() => showMobileMenu = false}>Write</a>
           {#if $authStore.isAdmin}
-            <a href="/admin" class="block text-sm font-medium text-amber-600 hover:text-amber-700">Admin</a>
+            <a href="/admin" class="block text-sm font-medium text-amber-600 hover:text-amber-700" onclick={() => showMobileMenu = false}>Admin</a>
           {/if}
-          <a href="/health" class="block text-sm font-medium text-slate-500 hover:text-violet-600">Health</a>
-          <a href="/settings" class="block text-sm font-medium text-slate-500 hover:text-violet-600">Settings</a>
+          <a href="/health" class="block text-sm font-medium text-slate-500 hover:text-violet-600" onclick={() => showMobileMenu = false}>Health</a>
+          <a href="/settings" class="block text-sm font-medium text-slate-500 hover:text-violet-600" onclick={() => showMobileMenu = false}>Settings</a>
           <button class="w-full text-left text-sm font-semibold text-slate-500 hover:text-slate-900" onclick={() => { authService.logout(); showMobileMenu = false; }}>
             Logout
           </button>
         {:else}
-          <a href="/login" class="block rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white text-center">Login</a>
+          <a href="/login" class="block rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white text-center" onclick={() => showMobileMenu = false}>Login</a>
         {/if}
       </div>
     </div>

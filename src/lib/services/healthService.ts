@@ -3,6 +3,8 @@ import { relaySettingsRepo } from '$lib/infra/storage/relaySettingsRepo';
 import { wsProbe } from '$lib/infra/net/wsProbe';
 import { ok, type Result } from '$lib/domain/result';
 import type { HealthReport, RelayCheckResult } from '$lib/domain/types';
+import { get } from 'svelte/store';
+import { authStore } from '$lib/state/authStore';
 
 export const healthService = {
     async getHealthReport(): Promise<Result<HealthReport>> {
@@ -29,7 +31,7 @@ export const healthService = {
             },
             signer: {
                 nip07: nip07Adapter.detect(),
-                nip46: false // Placeholder
+                nip46: get(authStore).signerType === 'nip46'
             },
             storage: {
                 indexedDb: await relaySettingsRepo.checkDb(),

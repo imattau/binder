@@ -13,6 +13,7 @@
   import ListRow from '$lib/ui/components/ListRow.svelte';
   import CreateShelfModal from '$lib/ui/components/library/CreateShelfModal.svelte';
   import { formatDistanceToNow } from 'date-fns';
+  import type { SavedBook, FeedItem } from '$lib/domain/types';
 
   let activeShelfId = $state('favorites');
   let showCreateModal = $state(false);
@@ -32,9 +33,11 @@
   const activeBooks = $derived($libraryStore.books.filter(b => b.shelves.includes(activeShelfId)));
   const currentShelf = $derived($libraryStore.shelves.find(s => s.id === activeShelfId));
   
-  function toFeedItem(book: any): any {
+  function toFeedItem(book: SavedBook): FeedItem {
       return {
           event: {
+              id: book.id,
+              kind: book.kind,
               tags: [
                   ['title', book.title],
                   ...(book.coverUrl ? [['cover', book.coverUrl]] : []),
@@ -43,7 +46,8 @@
               ],
               pubkey: book.pubkey,
               created_at: Math.floor(book.addedAt / 1000),
-              content: ''
+              content: '',
+              sig: ''
           },
           type: 'book',
           reason: 'Saved'

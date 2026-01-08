@@ -189,6 +189,8 @@ export const librarySyncService = {
 
     // Process Public List
     if (publicEvent) {
+        const booksToHydrate: SavedBook[] = [];
+
         for (const tag of publicEvent.tags) {
             if (tag[0] === 'a') {
                 const [kindStr, pubkey, d] = tag[1].split(':');
@@ -216,11 +218,54 @@ export const librarySyncService = {
                 const existing = await libraryRepo.getSavedBook(id);
                 if (!existing.ok || !existing.value) {
                     await libraryRepo.saveBook(book);
+                    booksToHydrate.push(book);
                 } else {
                     // Update shelves only
                     const updated = { ...existing.value, shelves };
                     await libraryRepo.saveBook(updated);
+                    
+                    if (existing.value.title === 'Loading...') {
+                        booksToHydrate.push(updated);
+                    }
                 }
+            }
+        }
+
+        // Hydrate missing metadata
+        if (booksToHydrate.length > 0) {
+            const filters: Filter[] = booksToHydrate.map(b => ({
+                kinds: [30003],
+                authors: [b.pubkey],
+                '#d': [b.d]
+            }));
+            
+            // Deduplicate filters slightly if possible, or just send array (subscribeMany handles it)
+            // Limit concurrency if too many? subscribeMany usually handles it.
+            try {
+                const events = await fetchEvents(relays, filters);
+                
+                for (const event of events) {
+                    const d = event.tags.find(t => t[0] === 'd')?.[1];
+                    if (!d) continue;
+                    const id = `${event.kind}:${event.pubkey}:${d}`;
+                    
+                    const book = booksToHydrate.find(b => b.id === id);
+                    if (book) {
+                        const title = event.tags.find(t => t[0] === 'title')?.[1] || 'Untitled';
+                        const summary = event.tags.find(t => t[0] === 'summary')?.[1];
+                        const coverUrl = event.tags.find(t => t[0] === 'cover')?.[1] || event.tags.find(t => t[0] === 'image')?.[1];
+                        
+                        const updated: SavedBook = {
+                            ...book,
+                            title,
+                            summary,
+                            coverUrl
+                        };
+                        await libraryRepo.saveBook(updated);
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to hydrate library books', e);
             }
         }
     }
