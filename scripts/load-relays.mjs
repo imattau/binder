@@ -26,7 +26,7 @@ function wait(ms) {
 async function queryOne(iteration, index) {
   const start = Date.now();
   try {
-    const events = await pool.query(RELAYS, filter);
+    const events = await pool.querySync(RELAYS, filter);
     const duration = Date.now() - start;
     console.log(`iteration ${iteration}/${index} fetched ${events.length} events in ${duration}ms`);
     return { success: true, duration };
@@ -54,10 +54,10 @@ async function runLoadTest() {
   const fail = results.length - success;
   const avg = Math.round(results.reduce((sum, r) => sum + (r.duration ?? 0), 0) / results.length);
   console.log(`load test completed — ${success} succeeded, ${fail} failed, avg ${avg}ms`); // maybe include warns
-  pool.close();
+  pool.close(RELAYS);
 }
 
 runLoadTest().catch(error => {
   console.error('load test uncaught', error);
-  pool.close();
+  pool.close(RELAYS);
 });

@@ -17,7 +17,7 @@
     return bookD.includes(':') ? bookD : `30003:${e.pubkey}:${bookD}`;
   });
   const chapterD = $derived(() => e.tags.find(t => t[0] === 'd')?.[1] || '');
-  const chapterCoord = $derived(() => `30023:${e.pubkey}:${chapterD}`);
+  const chapterCoord = $derived(() => `30023:${e.pubkey}:${chapterD()}`);
   const chapterEventId = $derived(() => e.id);
   let stats = $state<SocialCounts>({ likes: 0, comments: 0, boosts: 0, zaps: 0 });
   let statsLoading = $state(true);
