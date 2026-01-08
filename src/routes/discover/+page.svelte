@@ -44,32 +44,30 @@
 
   <div class="space-y-12">
     {#if pageConfig.coverImage}
-      <section class="overflow-hidden rounded-3xl border border-white/30 bg-gradient-to-br from-slate-900/50 to-slate-800/30 shadow-2xl shadow-slate-900/20">
-        <div
-          class="relative h-52 sm:h-64"
-          style={`background-image: url('${pageConfig.coverImage}'); background-size: cover; background-position: center;`}
-        >
-          <div class="absolute inset-0 bg-gradient-to-br from-black/70 via-black/40 to-transparent"></div>
-          <div class="absolute inset-0 flex items-center justify-between px-6 sm:px-10">
-            <div class="flex items-end gap-3">
-              {#if pageConfig.iconImage}
-                <img src={pageConfig.iconImage} alt="Binder icon" class="h-16 w-16 rounded-2xl border border-white/50 object-cover shadow-xl" />
-              {:else}
-                <div class="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/50 bg-white/10 text-xl font-semibold uppercase tracking-wide text-white shadow-xl">
-                  B
-                </div>
-              {/if}
-              <div class="text-white">
-                <p class="text-xs uppercase tracking-[0.4em] text-white/70">Binder</p>
-                <h1 class="text-2xl font-semibold">Long-form books, curated for you</h1>
-                <p class="text-sm text-white/80 mt-1 max-w-xl">Discover stories and knowledge shared by writers across Nostr.</p>
-              </div>
+      <section class="overflow-hidden rounded-3xl border border-white/30 bg-white/5 shadow-2xl shadow-slate-900/10">
+        <div class="relative h-52 sm:h-64">
+          <img
+            src={pageConfig.coverImage}
+            alt="Binder cover"
+            class="absolute inset-0 h-full w-full object-cover"
+          />
+          <div class="absolute inset-0 bg-gradient-to-br from-black/30 via-transparent to-transparent" />
+        </div>
+        <div class="px-6 py-6 sm:px-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex items-center gap-3">
+            {#if pageConfig.iconImage}
+              <img src={pageConfig.iconImage} alt="Binder icon" class="h-16 w-16 rounded-2xl border border-slate-200 object-cover shadow-lg" />
+            {/if}
+            <div>
+              <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Binder</p>
+              <h1 class="text-2xl font-semibold text-slate-900">Long-form books, curated for you</h1>
+              <p class="text-sm text-slate-500 mt-1 max-w-xl">Discover stories and knowledge shared by writers across Nostr.</p>
             </div>
-            <Button variant="secondary" class="hidden lg:inline-flex items-center gap-2" onclick={() => goto('/writer')}>
-              <Icon name="Pen" size={16} />
-              Publish Your Book
-            </Button>
           </div>
+          <Button variant="secondary" class="hidden lg:inline-flex items-center gap-2" onclick={() => goto('/writer')}>
+            <Icon name="Pen" size={16} />
+            Publish Your Book
+          </Button>
         </div>
       </section>
     {/if}
