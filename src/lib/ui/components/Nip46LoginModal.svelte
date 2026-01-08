@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import Button from './Button.svelte';
   import Icon from './Icon.svelte';
   import Input from './Input.svelte';
@@ -6,35 +7,31 @@
   import QRCode from 'qrcode';
   import Tabs from './Tabs.svelte';
 
-  export let isOpen: boolean;
-  export let onClose: () => void;
-  export let onLogin: (pubkey: string) => void;
+  let { isOpen, onClose, onLogin }: { isOpen: boolean, onClose: () => void, onLogin: (pubkey: string) => void } = $props();
   
-  let mode: 'scan' | 'manual' = 'scan';
-  let bunkerUrl = '';
-  let isConnecting = false;
-  let error = '';
-  let qrDataUrl = '';
-  let scanUri = '';
-  let copyStatus = '';
+  let mode = $state('scan'); // 'scan' | 'manual'
+  let bunkerUrl = $state('');
+  let isConnecting = $state(false);
+  let error = $state('');
+  let qrDataUrl = $state('');
+  let scanUri = $state('');
+  let copyStatus = $state('');
 
-  function resetModalState() {
-      mode = 'scan';
-      bunkerUrl = '';
-      scanUri = '';
-      qrDataUrl = '';
-      isConnecting = false;
-      error = '';
-      copyStatus = '';
-  }
-
-  $: if (isOpen) {
-      if (mode === 'scan' && !scanUri && !isConnecting) {
-          startScanFlow();
+  // Reset state when opened
+  $effect(() => {
+      if (isOpen) {
+          if (mode === 'scan' && !scanUri) {
+              startScanFlow();
+          }
+      } else {
+          // Cleanup
+          scanUri = '';
+          qrDataUrl = '';
+          isConnecting = false;
+          error = '';
+          copyStatus = '';
       }
-  } else {
-      resetModalState();
-  }
+  });
 
   async function startScanFlow() {
       isConnecting = true;
@@ -114,7 +111,7 @@
           <Tabs 
               items={[{ id: 'scan', label: 'Scan QR' }, { id: 'manual', label: 'Enter Address' }]} 
               activeItem={mode} 
-              onchange={(id: 'scan' | 'manual') => { mode = id; error = ''; }}
+              onchange={(id: string) => { mode = id; error = ''; }}
           />
       </div>
 
@@ -161,10 +158,10 @@
                 </p>
                 <div>
                     <label for="bunker" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Bunker Address</label>
-                    <Input bind:value={bunkerUrl} placeholder="name@domain.com" disabled={isConnecting} />
+                    <Input bind:value={bunkerUrl} placeholder="name@domain.com" disabled={isConnecting && mode === 'manual'} />
                 </div>
                 <div class="pt-4">
-                    <Button onclick={handleManualConnect} disabled={isConnecting || !bunkerUrl} class="w-full">
+                    <Button onclick={handleManualConnect} disabled={(isConnecting && mode === 'manual') || !bunkerUrl} class="w-full">
                         {#if isConnecting}
                             <Icon name="Pulse" class="animate-spin mr-2" size={16} /> Connecting...
                         {:else}
