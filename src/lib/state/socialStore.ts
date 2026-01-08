@@ -69,8 +69,8 @@ export function createSocialStore() {
             }
             return res;
         },
-        requestZap: async (details: ZapDetails, amount: number, nostrPubkey?: string): Promise<Result<string>> => {
-            return zapService.requestZap(details, amount, nostrPubkey);
+        requestZap: async (details: ZapDetails, amount: number, nostrPubkey?: string, comment?: string): Promise<Result<string>> => {
+            return zapService.requestZap(details, amount, nostrPubkey, comment);
         },
         resolveZap: async (pubkey: string): Promise<Result<ZapDetails>> => {
             return zapService.resolveZapDetails(pubkey);

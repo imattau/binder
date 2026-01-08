@@ -31,6 +31,7 @@ let zapTargetPubkey = $state('');
 let zapInitialAmount = $state(0);
 let zapError = $state('');
 let zapLoading = $state(false);
+let zapMessage = $state('');
 
   onMount(async () => {
       await Promise.all([
@@ -87,17 +88,19 @@ let zapLoading = $state(false);
            return;
        }
 
-       zapDetails = res.value;
-       zapTargetPubkey = authorPubkey;
-       zapInitialAmount = res.value.minSendable;
-       zapError = '';
-       zapModalOpen = true;
+      zapDetails = res.value;
+      zapTargetPubkey = authorPubkey;
+      zapInitialAmount = res.value.minSendable;
+      zapMessage = '';
+      zapError = '';
+      zapModalOpen = true;
   }
 
-  async function confirmZap(amount: number) {
+  async function confirmZap(amount: number, comment?: string) {
       if (!zapDetails || !zapTargetPubkey) return;
       zapLoading = true;
-      const res = await socialStore.requestZap(zapDetails, amount, zapTargetPubkey);
+      zapMessage = comment ?? '';
+      const res = await socialStore.requestZap(zapDetails, amount, zapTargetPubkey, zapMessage);
       zapLoading = false;
       if (res.ok) {
           zapModalOpen = false;
@@ -233,8 +236,13 @@ let zapLoading = $state(false);
           initialAmount={zapInitialAmount}
           loading={zapLoading}
           error={zapError}
-          onCancel={() => zapModalOpen = false}
+          onCancel={() => {
+              zapModalOpen = false;
+              zapMessage = '';
+          }}
           onConfirm={confirmZap}
+          commentAllowed={zapDetails?.commentAllowed ?? 0}
+          defaultMessage={zapMessage}
       />
   </div>
 {:else}

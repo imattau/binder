@@ -8,17 +8,17 @@
   import { authStore } from '$lib/state/authStore';
   import { offlineService } from '$lib/services/offlineService';
   import { exportService } from '$lib/services/exportService';
-import SectionHeader from '$lib/ui/components/SectionHeader.svelte';
-import Button from '$lib/ui/components/Button.svelte';
-import Icon from '$lib/ui/components/Icon.svelte';
-import Card from '$lib/ui/components/Card.svelte';
-import ListRow from '$lib/ui/components/ListRow.svelte';
-import SocialActionBar from '$lib/ui/components/social/SocialActionBar.svelte';
-import CommentSection from '$lib/ui/components/social/CommentSection.svelte';
-import Badge from '$lib/ui/components/Badge.svelte';
-import ZapAmountModal from '$lib/ui/components/ZapAmountModal.svelte';
-import { readingProgressStore } from '$lib/state/readingProgressStore';
-import type { ReadingProgress, ZapDetails } from '$lib/domain/types';
+  import SectionHeader from '$lib/ui/components/SectionHeader.svelte';
+  import Button from '$lib/ui/components/Button.svelte';
+  import Icon from '$lib/ui/components/Icon.svelte';
+  import Card from '$lib/ui/components/Card.svelte';
+  import ListRow from '$lib/ui/components/ListRow.svelte';
+  import SocialActionBar from '$lib/ui/components/social/SocialActionBar.svelte';
+  import CommentSection from '$lib/ui/components/social/CommentSection.svelte';
+  import Badge from '$lib/ui/components/Badge.svelte';
+  import ZapAmountModal from '$lib/ui/components/ZapAmountModal.svelte';
+  import { readingProgressStore } from '$lib/state/readingProgressStore';
+  import type { ReadingProgress, ZapDetails } from '$lib/domain/types';
 
   const bookId = $page.params.bookId || '';
   const socialStore = createSocialStore(); 
@@ -35,6 +35,7 @@ import type { ReadingProgress, ZapDetails } from '$lib/domain/types';
   let zapInitialAmount = $state(0);
   let zapError = $state('');
   let zapLoading = $state(false);
+  let zapMessage = $state('');
 
   onMount(async () => {
       await currentBookStore.load(bookId || '');
@@ -150,14 +151,16 @@ import type { ReadingProgress, ZapDetails } from '$lib/domain/types';
       zapDetails = res.value;
       zapTargetPubkey = authorPubkey;
       zapInitialAmount = res.value.minSendable;
+      zapMessage = '';
       zapError = '';
       zapModalOpen = true;
   }
 
-  async function confirmZap(amount: number) {
+  async function confirmZap(amount: number, comment?: string) {
       if (!zapDetails || !zapTargetPubkey) return;
       zapLoading = true;
-      const res = await socialStore.requestZap(zapDetails, amount, zapTargetPubkey);
+      zapMessage = comment ?? '';
+      const res = await socialStore.requestZap(zapDetails, amount, zapTargetPubkey, zapMessage);
       zapLoading = false;
       if (res.ok) {
           zapModalOpen = false;
@@ -227,6 +230,22 @@ import type { ReadingProgress, ZapDetails } from '$lib/domain/types';
               onZap={handleZap}
           />
       </div>
+
+      <ZapAmountModal
+          open={zapModalOpen}
+          minSendable={zapDetails?.minSendable ?? 0}
+          maxSendable={zapDetails?.maxSendable ?? 0}
+          initialAmount={zapInitialAmount}
+          loading={zapLoading}
+          error={zapError}
+          commentAllowed={zapDetails?.commentAllowed ?? 0}
+          defaultMessage={zapMessage}
+          onCancel={() => {
+              zapModalOpen = false;
+              zapMessage = '';
+          }}
+          onConfirm={confirmZap}
+      />
 
       <ZapAmountModal
           open={zapModalOpen}

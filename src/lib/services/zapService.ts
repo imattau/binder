@@ -71,14 +71,15 @@ function ensureLnurlResponse(data: LnurlpResponse): Result<ZapDetails> {
         return fail({ message: 'LNURL did not expose min or max sendable amount' });
     }
 
-    return ok({
-        callback: data.callback,
-        minSendable,
-        maxSendable,
-        allowsNostr: data.allowsNostr,
-        nostrPubkey: data.nostrPubkey,
-        metadata: data.metadata
-    });
+        return ok({
+            callback: data.callback,
+            minSendable,
+            maxSendable,
+            allowsNostr: data.allowsNostr,
+            nostrPubkey: data.nostrPubkey,
+            metadata: data.metadata,
+            commentAllowed: data.nostrCommentAllowed
+        });
 }
 
 export const zapService = {
@@ -102,7 +103,7 @@ export const zapService = {
         return ensureLnurlResponse(lnurlRes.value as LnurlpResponse);
     },
 
-    async requestZap(details: ZapDetails, amount: number, nostrPubkey?: string): Promise<Result<string>> {
+    async requestZap(details: ZapDetails, amount: number, nostrPubkey?: string, comment?: string): Promise<Result<string>> {
         const minSendable = details.minSendable || 0;
         const maxSendable = details.maxSendable || Infinity;
         if (amount < minSendable || amount > maxSendable) {
@@ -114,6 +115,10 @@ export const zapService = {
 
         if (details.allowsNostr && nostrPubkey) {
             callbackUrl.searchParams.set('nostr', nostrPubkey);
+        }
+
+        if (comment) {
+            callbackUrl.searchParams.set('comment', comment);
         }
 
         const invoiceRes = await fetchJson(callbackUrl.toString());

@@ -171,4 +171,5 @@ export interface ZapDetails {
     allowsNostr?: boolean;
     nostrPubkey?: string;
     metadata?: string;
+    commentAllowed?: number;
 }
