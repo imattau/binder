@@ -12,17 +12,29 @@ export let defaultMessage = '';
 export let onCancel: () => void = () => {};
 export let onConfirm: (amount: number, comment?: string) => void = () => {};
 
-const clampAmount = (value: number) => {
-  return Math.max(minSendable, Math.min(maxSendable, value));
+const effectiveMinSendable = () => (minSendable > 0 ? minSendable : 1000);
+const effectiveMaxSendable = () => {
+  if (Number.isFinite(maxSendable) && maxSendable > 0) {
+    return maxSendable;
+  }
+  return Math.max(effectiveMinSendable(), effectiveMinSendable() * 5);
 };
 
-$: minSats = Math.max(1, Math.ceil(minSendable / 1000));
-$: maxSats = Math.max(minSats, Math.floor(maxSendable / 1000));
-$: defaultSats = Math.max(minSats, Math.min(maxSats, Math.round(initialAmount / 1000)));
+const clampAmount = (value: number) => {
+  return Math.max(effectiveMinSendable(), Math.min(effectiveMaxSendable(), value));
+};
+
+$: minSats = Math.max(1, Math.ceil(effectiveMinSendable() / 1000));
+$: maxSats = Math.max(minSats, Math.floor(effectiveMaxSendable() / 1000));
+$: defaultSats = Math.max(
+  minSats,
+  Math.min(maxSats, Math.round((minSats + maxSats) / 2))
+);
 
 let sats = defaultSats;
 $: if (open) {
-  const target = Math.max(minSats, Math.min(maxSats, Math.round(initialAmount / 1000)));
+  const requested = initialAmount > 0 ? Math.round(initialAmount / 1000) : defaultSats;
+  const target = Math.max(minSats, Math.min(maxSats, requested));
   if (sats !== target) {
     sats = target;
   }
@@ -60,45 +72,50 @@ function handleConfirm() {
           {error}
         </div>
       {/if}
-      <div class="mt-5">
-        <input
-          type="range"
-          min={minSats}
-          max={maxSats}
-          step="1"
-          bind:value={sats}
-          class="w-full"
-        />
-        <div class="mt-3 flex items-baseline justify-between text-xs text-slate-500">
-          <span>{minSats} sats</span>
-          <span class="text-slate-900 text-sm font-semibold">{sats.toLocaleString()} sats</span>
-          <span>{maxSats} sats</span>
-        </div>
-        {#if presetButtonSats.length > 0}
-          <div class="mt-3 flex flex-wrap gap-2">
-            {#each presetButtonSats as preset}
-              <button
-                type="button"
-                class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-violet-200 hover:text-violet-600"
-                onclick={() => (sats = preset)}
-              >
-                {preset.toLocaleString()} sats
-              </button>
-            {/each}
+        <div class="mt-5 space-y-3">
+          <div class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Amount</span>
+            <div class="text-2xl font-semibold text-slate-900">{sats.toLocaleString()} sats</div>
           </div>
-        {/if}
-        <div class="mt-2">
-          <input
-            type="number"
-            min={minSats}
-            max={maxSats}
-            step="1"
-            bind:value={sats}
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-700"
-          />
+          <div>
+            <input
+              type="range"
+              min={minSats}
+              max={maxSats}
+              step="1"
+              bind:value={sats}
+              class="w-full accent-violet-500"
+            />
+            <div class="mt-1 flex items-center justify-between text-xs text-slate-500">
+              <span>{minSats} sats</span>
+              <span>{maxSats} sats</span>
+            </div>
+          </div>
+          {#if presetButtonSats.length > 0}
+            <div class="flex flex-wrap gap-2">
+              {#each presetButtonSats as preset}
+                <button
+                  type="button"
+                  class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-violet-200 hover:text-violet-600 transition"
+                  onclick={() => (sats = preset)}
+                >
+                  {preset.toLocaleString()} sats
+                </button>
+              {/each}
+            </div>
+          {/if}
+          <div>
+            <input
+              type="number"
+              min={minSats}
+              max={maxSats}
+              step="1"
+              bind:value={sats}
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-700"
+            />
+          </div>
         </div>
-      </div>
-      <div class="mt-4 space-y-2">
+        <div class="mt-4 space-y-2">
         <label for="zap-comment" class="block text-sm font-semibold text-slate-700">Add a message (optional)</label>
         <textarea
           id="zap-comment"
