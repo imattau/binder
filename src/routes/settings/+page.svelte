@@ -5,6 +5,7 @@
   import { settingsStore } from '$lib/state/settingsStore';
   import { mediaSettingsStore } from '$lib/state/mediaSettingsStore';
   import { themeStore, type ThemePreference } from '$lib/state/themeStore';
+  import { walletPreferenceStore, type WalletPreference } from '$lib/state/walletPreferenceStore';
   import SectionHeader from '$lib/ui/components/SectionHeader.svelte';
   import Card from '$lib/ui/components/Card.svelte';
   import Button from '$lib/ui/components/Button.svelte';
@@ -34,6 +35,28 @@
           value: 'dark'
       }
   ];
+
+  const walletOptions: { label: string; description: string; value: WalletPreference }[] = [
+      {
+          label: 'Browser Extension (NIP-07)',
+          description: 'Use your extension wallet like Alby, Nos2x, or other NIP-07 providers.',
+          value: 'nip07'
+      },
+      {
+          label: 'Nostr Connect (NIP-46)',
+          description: 'Connect to remote signers such as Bunker, Amber, or a mobile key manager.',
+          value: 'nip46'
+      },
+      {
+          label: 'External Wallet / Lightning',
+          description: 'Prompt an external LNURL-compatible wallet for zaps and payments.',
+          value: 'external'
+      }
+  ];
+
+  function selectWallet(value: WalletPreference) {
+      walletPreferenceStore.setPreference(value);
+  }
 
   function selectTheme(value: ThemePreference) {
       themeStore.setTheme(value);
@@ -166,6 +189,33 @@
           <p class="text-xs text-slate-400">
             Current preference: <span class="font-semibold">{($themeStore === 'auto' ? 'Auto (system)' : $themeStore)}</span>
           </p>
+          </div>
+      </Card>
+  </CollapsibleSection>
+
+  <CollapsibleSection title="Wallet Preferences" description="Choose the signer or wallet that Binder should promote when you log in or zap content.">
+    <Card>
+      <div class="space-y-3">
+        {#each walletOptions as option}
+          <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 transition hover:border-violet-200">
+            <input
+              type="radio"
+              name="wallet-preference"
+              class="mt-1 h-4 w-4 accent-violet-600"
+              checked={$walletPreferenceStore === option.value}
+              onchange={() => selectWallet(option.value)}
+            />
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-semibold text-slate-900">{option.label}</span>
+                {#if $walletPreferenceStore === option.value}
+                  <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-600">Selected</span>
+                {/if}
+              </div>
+              <p class="text-xs text-slate-500">{option.description}</p>
+            </div>
+          </label>
+        {/each}
       </div>
     </Card>
   </CollapsibleSection>

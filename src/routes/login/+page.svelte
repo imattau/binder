@@ -3,15 +3,16 @@
   import { goto } from '$app/navigation';
   import { authService } from '$lib/services/authService';
   import { authStore } from '$lib/state/authStore';
+  import { walletPreferenceStore } from '$lib/state/walletPreferenceStore';
   import SectionHeader from '$lib/ui/components/SectionHeader.svelte';
   import Card from '$lib/ui/components/Card.svelte';
   import Button from '$lib/ui/components/Button.svelte';
   import Icon from '$lib/ui/components/Icon.svelte';
   import Nip46LoginModal from '$lib/ui/components/Nip46LoginModal.svelte';
 
-  let showNip46Modal = false;
-  let isExtensionConnecting = false;
-  let extensionError = '';
+  let showNip46Modal = $state(false);
+  let isExtensionConnecting = $state(false);
+  let extensionError = $state('');
 
   onMount(() => {
       if ($authStore.pubkey) {
@@ -35,6 +36,12 @@
   function handleLoginSuccess(pubkey: string) {
       goto('/writer');
   }
+
+  const walletLabels: Record<'nip07' | 'nip46' | 'external', string> = {
+      nip07: 'Browser Extension (NIP-07)',
+      nip46: 'Nostr Connect / Remote Signer (NIP-46)',
+      external: 'External Lightning Wallet'
+  };
 </script>
 
 <div class="max-w-2xl mx-auto py-12 px-4">
@@ -43,6 +50,9 @@
             <Icon name="Books" size={32} />
         </div>
         <SectionHeader title="Welcome to Binder" subtitle="Choose your preferred way to sign events and manage your books." />
+        <p class="text-sm text-slate-400 mt-2">
+            Preferred wallet flow: <span class="font-semibold text-violet-600">{walletLabels[$walletPreferenceStore]}</span>
+        </p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -65,7 +75,7 @@
                     {/if}
 
                     <div class="w-full">
-                        <Button variant="primary" onclick={loginExtension} disabled={isExtensionConnecting} class="w-full">
+                        <Button variant={$walletPreferenceStore === 'nip07' ? 'primary' : 'secondary'} onclick={loginExtension} disabled={isExtensionConnecting} class="w-full">
                             {#if isExtensionConnecting}
                                 <Icon name="Pulse" class="animate-spin mr-2" size={16} /> Connecting...
                             {:else}
@@ -89,7 +99,7 @@
                         Connect to a remote signer like Amber, Bunker, or a mobile wallet. Works everywhere.
                     </p>
                     <div class="w-full">
-                        <Button variant="secondary" onclick={() => showNip46Modal = true} class="w-full">
+                        <Button variant={$walletPreferenceStore === 'nip46' ? 'primary' : 'secondary'} onclick={() => showNip46Modal = true} class="w-full">
                             Login with Bunker
                         </Button>
                     </div>
