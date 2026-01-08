@@ -10,6 +10,7 @@ interface CurrentChapterState {
     chapter: LocalChapterDraft | null;
     snapshots: DraftSnapshot[];
     loading: boolean;
+    loadError?: string;
     isDirty: boolean;
 }
 
@@ -18,6 +19,7 @@ function createCurrentChapterStore() {
         chapter: null,
         snapshots: [],
         loading: false,
+        loadError: undefined,
         isDirty: false
     });
 
@@ -25,22 +27,24 @@ function createCurrentChapterStore() {
         subscribe,
         set,
         update,
-        reset: () => set({ chapter: null, snapshots: [], loading: false, isDirty: false }),
+        reset: () => set({ chapter: null, snapshots: [], loading: false, loadError: undefined, isDirty: false }),
         load: async (chapterId: string) => {
             if (!chapterId) return;
-            update(s => ({ ...s, loading: true }));
+            update(s => ({ ...s, loading: true, loadError: undefined }));
             
             // Check for Remote Coordinate
+            let remoteError: string | undefined;
             if (chapterId.includes(':')) {
                 const [kind, pubkey, d] = chapterId.split(':');
                 const res = await contentCacheService.getChapter(pubkey, d, 'prefer-offline');
-                
+
                 if (res.ok) {
                     const event = res.value;
                     const title = event.tags.find(t => t[0] === 'title')?.[1] || 'Untitled';
                     const bookId = event.tags.find(t => t[0] === 'book')?.[1] || ''; // This is likely just 'd', not full coord
                     
                     set({
+                        loadError: undefined,
                         chapter: {
                             id: chapterId,
                             d,
@@ -58,24 +62,42 @@ function createCurrentChapterStore() {
                     });
                     return;
                 }
+                remoteError = res.error?.message;
             }
 
             // Local Fallback
             const res = await chapterDraftService.getChapter(chapterId);
-            if (res.ok && res.value) {
-                const snapshotsRes = await snapshotService.getSnapshots(chapterId);
-                const userPubkey = get(authStore).pubkey ?? undefined;
-                set({ 
-                    chapter: {
-                        ...res.value,
-                        pubkey: res.value.pubkey ?? userPubkey
-                    },
-                    snapshots: snapshotsRes.ok ? snapshotsRes.value : [],
-                    loading: false,
-                    isDirty: false
-                });
+            if (res.ok) {
+                if (res.value) {
+                    const snapshotsRes = await snapshotService.getSnapshots(chapterId);
+                    const userPubkey = get(authStore).pubkey ?? undefined;
+                    set({ 
+                        chapter: {
+                            ...res.value,
+                            pubkey: res.value.pubkey ?? userPubkey
+                        },
+                        snapshots: snapshotsRes.ok ? snapshotsRes.value : [],
+                        loadError: undefined,
+                        loading: false,
+                        isDirty: false
+                    });
+                } else {
+                    set({ 
+                        chapter: null, 
+                        snapshots: [], 
+                        loading: false, 
+                        isDirty: false,
+                        loadError: remoteError ?? 'Chapter not available'
+                    });
+                }
             } else {
-                set({ chapter: null, snapshots: [], loading: false, isDirty: false });
+                set({ 
+                    chapter: null, 
+                    snapshots: [], 
+                    loading: false, 
+                    isDirty: false,
+                    loadError: remoteError ?? res.error?.message ?? 'Chapter not available'
+                });
             }
         },
         updateContent: (content: string) => {

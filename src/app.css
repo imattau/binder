@@ -130,6 +130,25 @@
   color: var(--text-2) !important;
 }
 
+/* Force form controls to match the dark surface tokens */
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] textarea,
+:root[data-theme='dark'] select,
+:root[data-theme='dark'] button {
+  background-color: var(--surface-2);
+  color: var(--text-0);
+  border-color: var(--border);
+}
+:root[data-theme='dark'] input::placeholder,
+:root[data-theme='dark'] textarea::placeholder {
+  color: var(--text-2);
+}
+:root[data-theme='dark'] input:focus,
+:root[data-theme='dark'] textarea:focus,
+:root[data-theme='dark'] select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.25);
+}
 /* Prose overrides for Merriweather reading experience */
 .prose {
   font-family: 'Merriweather', serif;
@@ -156,4 +175,58 @@
 .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
   margin-top: 1.25rem;
   margin-bottom: 0.75rem;
+}
+
+.top-nav-shell {
+  border-bottom: 1px solid var(--border);
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  color: var(--text-0);
+}
+.top-nav-shell .text-slate-900 {
+  color: var(--text-0);
+}
+.top-nav-shell .text-slate-700,
+.top-nav-shell .text-slate-500,
+.top-nav-shell .text-slate-400 {
+  color: var(--text-1);
+}
+.top-nav-shell .text-slate-400:hover,
+.top-nav-shell .text-slate-500:hover {
+  color: var(--primary);
+}
+.top-nav-shell .bg-slate-900 {
+  background-color: var(--text-0);
+  color: var(--surface-0);
+}
+.top-nav-shell .bg-slate-800:hover {
+  background-color: var(--text-1);
+}
+.top-nav-mobile {
+  border-color: var(--border);
+  background-color: var(--surface-0);
+}
+:root[data-theme='dark'] .top-nav-shell {
+  background-color: rgba(5, 6, 8, 0.85);
+  color: var(--text-0);
+}
+:root[data-theme='dark'] .top-nav-shell .text-slate-700,
+:root[data-theme='dark'] .top-nav-shell .text-slate-500,
+:root[data-theme='dark'] .top-nav-shell .text-slate-400 {
+  color: var(--text-1);
+}
+:root[data-theme='dark'] .top-nav-shell .text-slate-700:hover,
+:root[data-theme='dark'] .top-nav-shell .text-slate-500:hover {
+  color: var(--primary);
+}
+:root[data-theme='dark'] .top-nav-shell .bg-slate-900 {
+  background-color: var(--text-0);
+  color: var(--surface-0);
+}
+:root[data-theme='dark'] .top-nav-shell .bg-slate-900:hover {
+  background-color: var(--text-1);
+}
+:root[data-theme='dark'] .top-nav-mobile {
+  background-color: var(--surface-0);
+  border-color: var(--border);
 }

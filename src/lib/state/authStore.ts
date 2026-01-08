@@ -22,6 +22,20 @@ function createAuthStore() {
         isAdmin: false
     });
 
+    const persist = (state: AuthState) => {
+        if (typeof localStorage === 'undefined') {
+            return;
+        }
+        const serialized = {
+            pubkey: state.pubkey,
+            signerType: state.signerType,
+            nip46BunkerUrl: state.nip46BunkerUrl,
+            isAdmin: state.isAdmin,
+            profile: state.profile
+        };
+        localStorage.setItem('binder_auth', JSON.stringify(serialized));
+    };
+
     return {
         subscribe,
         login: (pubkey: string, type: SignerType, bunkerUrl?: string, localKey?: string, isAdmin = false) => {
@@ -34,9 +48,7 @@ function createAuthStore() {
                 isAdmin
             };
             set(state);
-            if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('binder_auth', JSON.stringify(state));
-            }
+            persist(state);
         },
         logout: () => {
             console.log('[AuthStore] Logging out');
@@ -45,18 +57,32 @@ function createAuthStore() {
                 localStorage.removeItem('binder_auth');
             }
         },
+        updateProfile: (profile: NonNullable<AuthState['profile']>) => {
+            update(state => {
+                const next = { ...state, profile: { ...state.profile, ...profile } };
+                persist(next);
+                return next;
+            });
+        },
         loadSession: () => {
             if (typeof localStorage !== 'undefined') {
-                const stored = localStorage.getItem('binder_auth');
-                if (stored) {
-                    try {
-                        const parsed = JSON.parse(stored);
-                        set({ ...parsed, isAdmin: parsed.isAdmin ?? false });
-                        return parsed;
-                    } catch (e) {
-                        localStorage.removeItem('binder_auth');
-                    }
+            const stored = localStorage.getItem('binder_auth');
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    const nextState: AuthState = {
+                        pubkey: parsed.pubkey ?? null,
+                        signerType: parsed.signerType ?? null,
+                        nip46BunkerUrl: parsed.nip46BunkerUrl,
+                        isAdmin: parsed.isAdmin ?? false,
+                        profile: parsed.profile
+                    };
+                    set(nextState);
+                    return nextState;
+                } catch (e) {
+                    localStorage.removeItem('binder_auth');
                 }
+            }
             }
             return null;
         }

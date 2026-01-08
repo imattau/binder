@@ -196,5 +196,11 @@
       </div>
   </div>
 {:else}
-  <div class="text-center py-12 text-slate-500">Loading chapter...</div>
+  {#if $currentChapterStore.loading}
+    <div class="text-center py-12 text-slate-500">Loading chapter...</div>
+  {:else if $currentChapterStore.loadError}
+    <div class="text-center py-12 text-red-500">{$currentChapterStore.loadError}</div>
+  {:else}
+    <div class="text-center py-12 text-slate-500">Chapter unavailable.</div>
+  {/if}
 {/if}
