@@ -1,16 +1,17 @@
 <script lang="ts">
+  import Icon from '../Icon.svelte';
   import Button from '../Button.svelte';
   import type { NostrEvent } from 'nostr-tools';
+  import { authStore } from '$lib/state/authStore';
   import { wotStore } from '$lib/state/wotStore';
   import { wotService } from '$lib/services/wotService';
 
-  export let comments: NostrEvent[] = [];
-  export let onReply: (comment: string) => void;
+  let { comments, onReply } = $props();
 
-  let newComment = '';
+  let newComment = $state('');
 
   function handleSubmit() {
-      if (!newComment.trim()) return;
+      if (!newComment.trim() || !$authStore.pubkey) return;
       onReply(newComment);
       newComment = '';
   }
@@ -23,25 +24,31 @@
       return wotService.getTrustScore(event.pubkey, $wotStore);
   }
 
-  $: sortedComments = [...comments].sort((a, b) => {
+  let sortedComments = $derived([...comments].sort((a, b) => {
       const scoreA = getScore(a);
       const scoreB = getScore(b);
       if (scoreA !== scoreB) return scoreB - scoreA;
       return b.created_at - a.created_at;
-  });
+  }));
 </script>
 
 <div class="mt-8">
   <h3 class="text-lg font-bold text-gray-900 mb-4">Comments ({comments.length})</h3>
 
-  <div class="mb-6 flex gap-2">
-      <input 
-          class="flex-1 border border-gray-300 rounded-md p-2 text-sm"
-          placeholder="Write a reply..." 
-          bind:value={newComment}
-      />
-      <Button onclick={handleSubmit} disabled={!newComment.trim()}>Reply</Button>
-  </div>
+  {#if $authStore.pubkey}
+      <div class="mb-6 flex gap-2">
+          <input 
+              class="flex-1 border border-gray-300 rounded-md p-2 text-sm"
+              placeholder="Write a reply..." 
+              bind:value={newComment}
+          />
+          <Button onclick={handleSubmit} disabled={!newComment.trim()}>Reply</Button>
+      </div>
+  {:else}
+      <div class="mb-6 text-xs text-gray-500">
+          Sign in to add a comment.
+      </div>
+  {/if}
 
   <div class="space-y-4">
       {#each sortedComments as comment}
