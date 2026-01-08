@@ -17,6 +17,26 @@ import { onMount } from 'svelte';
   // Construct coordinate: kind:pubkey:d
   const d = $derived(e.tags.find(t => t[0] === 'd')?.[1] || '');
   const coordinate = $derived(() => `${e.kind}:${e.pubkey}:${d}`);
+  const topics = $derived(Array.from(new Set(
+      e.tags
+        .filter(t => t[0] === 't')
+        .map(t => t[1])
+        .filter((value): value is string => Boolean(value))
+  )));
+  const coAuthors = $derived(Array.from(new Set(
+      e.tags
+        .filter(t => t[0] === 'p')
+        .map(t => t[1])
+        .filter((value): value is string => Boolean(value) && value !== e.pubkey)
+  )));
+  const coAuthorLabel = $derived(
+      coAuthors.length === 0
+        ? ''
+        : (() => {
+            const labels = coAuthors.slice(0, 2).map((pk: string) => `${pk.slice(0, 6)}...`);
+            return `${labels.join(', ')}${coAuthors.length > 2 ? ` +${coAuthors.length - 2}` : ''}`;
+          })()
+  );
   
   let stats = $state<SocialCounts>({ likes: 0, comments: 0, boosts: 0, zaps: 0 });
   let statsLoading = $state(true);
@@ -64,6 +84,20 @@ import { onMount } from 'svelte';
           {#if summary}
               <p class="text-sm text-slate-500 mt-2 line-clamp-2 leading-relaxed">{summary}</p>
           {/if}
+          {#if topics.length > 0}
+              <div class="mt-3 flex flex-wrap gap-2">
+                  {#each topics.slice(0, 3) as topic (topic)}
+                      <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                          #{topic}
+                      </span>
+                  {/each}
+                  {#if topics.length > 3}
+                      <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          +{topics.length - 3} more
+                      </span>
+                  {/if}
+              </div>
+          {/if}
           
           <div class="mt-3 flex items-center gap-2 text-xs font-medium text-slate-400">
               <div class="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
@@ -73,6 +107,11 @@ import { onMount } from 'svelte';
               <span class="text-slate-300">•</span>
               <span>{formatDistanceToNow(addedAt)} ago</span>
           </div>
+          {#if coAuthorLabel}
+              <div class="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  Co-authored with {coAuthorLabel}
+              </div>
+          {/if}
       </div>
   </div>
   <div class="px-5 pb-5 pt-0">

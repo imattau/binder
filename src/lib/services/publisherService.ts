@@ -8,6 +8,7 @@ import { chapterRepo } from '$lib/infra/storage/chapterRepo';
 import { ok, fail, type Result } from '$lib/domain/result';
 import type { LocalBook, LocalChapterDraft } from '$lib/domain/types';
 import { bookFingerprint, chapterFingerprint } from '$lib/utils/publicationFingerprint';
+import { syncStatusStore } from '$lib/state/syncStatusStore';
 
 export interface PublishResult {
     relays: Record<string, boolean>; // url -> success
@@ -92,13 +93,20 @@ export const publisherService = {
                 ['title', book.title],
             ];
             if (book.summary) bookTags.push(['summary', book.summary]);
-            
             chapters.forEach((c, index) => {
                 bookTags.push(['a', `30023:${pubkey}:${c.d}`, String(index)]);
             });
             if (book.cover) {
                 bookTags.push(['cover', book.cover]);
             }
+            const authorTags = Array.from(new Set([pubkey, ...(book.coAuthors ?? [])])).filter(Boolean);
+            authorTags.forEach(author => {
+                bookTags.push(['p', author]);
+            });
+            const topicTags = Array.from(new Set(book.topics ?? [])).filter(Boolean);
+            topicTags.forEach(topic => {
+                bookTags.push(['t', topic]);
+            });
 
             const bookTemplate: EventTemplate = {
                 kind: 30003,
@@ -119,6 +127,7 @@ export const publisherService = {
 
             book.publishedHash = bookHash;
             await bookRepo.save(book);
+            syncStatusStore.markSynced(book.id);
 
             return ok(results);
 

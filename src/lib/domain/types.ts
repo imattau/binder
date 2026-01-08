@@ -38,6 +38,8 @@ export interface LocalBook {
     cover?: string; // URL to cover image
     tags: string[];
     chapterOrder: string[]; // List of chapter IDs
+    topics: string[];
+    coAuthors: string[];
     createdAt: number;
     updatedAt: number;
     publishedHash?: string;

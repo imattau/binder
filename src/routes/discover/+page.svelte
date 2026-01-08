@@ -12,10 +12,12 @@
   import EmptyState from '$lib/ui/components/EmptyState.svelte';
   import { goto } from '$app/navigation';
   import { formatDistanceToNow } from 'date-fns';
+  import type { FeedItem } from '$lib/domain/types';
   import type { NostrEvent } from 'nostr-tools';
   import { pageConfigService } from '$lib/services/pageConfigService';
 
   const pageConfig = pageConfigService.getConfig();
+  let topicSource: FeedItem[] = [];
 
   onMount(() => {
     discoverStore.load();
@@ -38,6 +40,58 @@
       .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
       .slice(0, 4);
   })();
+
+  let selectedTopic: string | null = null;
+  const TOPIC_CHIP_LIMIT = 12;
+
+  function normalizeTopicTag(value: string): string {
+    return value.trim().toLowerCase();
+  }
+
+  function extractTopics(event: NostrEvent): string[] {
+    return event.tags
+      .filter(t => t[0] === 't')
+      .map(t => t[1])
+      .filter((value): value is string => Boolean(value))
+      .map(normalizeTopicTag)
+      .filter(topic => topic.length > 0);
+  }
+
+  function hasTopic(event: NostrEvent, topic: string) {
+    return extractTopics(event).includes(topic);
+  }
+
+  function toggleTopic(topic: string) {
+    selectedTopic = selectedTopic === topic ? null : topic;
+  }
+
+  function applyTopicFilter(items: FeedItem[], topic: string | null): FeedItem[] {
+    if (!topic) return items;
+    return items.filter(item => hasTopic(item.event, topic));
+  }
+
+  $: topicSource = $authStore.pubkey ? networkBooks : $discoverStore.global;
+  $: availableTopics = (() => {
+    const map = new Map<string, number>();
+    for (const item of topicSource) {
+      for (const topic of extractTopics(item.event)) {
+        map.set(topic, (map.get(topic) ?? 0) + 1);
+      }
+    }
+    return [...map.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, TOPIC_CHIP_LIMIT)
+      .map(([topic]) => topic);
+  })();
+  $: if (selectedTopic && !availableTopics.includes(selectedTopic)) {
+    selectedTopic = null;
+  }
+
+  $: filteredNewAuthors = applyTopicFilter(newAuthors, selectedTopic);
+  $: filteredHotReads = applyTopicFilter(hotReads, selectedTopic);
+  $: filteredNetwork = applyTopicFilter(networkBooks, selectedTopic);
+  $: filteredBooks = applyTopicFilter($discoverStore.books, selectedTopic);
+  $: filteredGlobalBooks = applyTopicFilter($discoverStore.global, selectedTopic);
 
   const getTagValue = (event: NostrEvent, key: string) => event.tags.find(t => t[0] === key)?.[1];
 
@@ -106,6 +160,28 @@
             {/if}
         </div>
     </div>
+    {#if availableTopics.length > 0}
+        <div class="flex flex-wrap gap-2">
+            {#each availableTopics as topic}
+                <button
+                    type="button"
+                    class={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${selectedTopic === topic ? 'border-violet-500 bg-violet-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'}`}
+                    on:click={() => toggleTopic(topic)}
+                >
+                    #{topic}
+                </button>
+            {/each}
+            {#if selectedTopic}
+                <button
+                    type="button"
+                    class="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-violet-300"
+                    on:click={() => selectedTopic = null}
+                >
+                    Clear filter
+                </button>
+            {/if}
+        </div>
+    {/if}
   
   {#if !$authStore.pubkey}
       <!-- Guest View -->
@@ -120,16 +196,16 @@
                   <Icon name="Pulse" class="animate-spin text-violet-500" size={32} />
                   <span>Scanning relays...</span>
               </div>
-          {:else if $discoverStore.global.length > 0}
+          {:else if filteredGlobalBooks.length > 0}
               {#if $bookLayoutStore === 'grid'}
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {#each $discoverStore.global as item}
+                      {#each filteredGlobalBooks as item}
                           <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                       {/each}
                   </div>
               {:else}
                   <div class="space-y-3">
-                      {#each $discoverStore.global as item}
+                      {#each filteredGlobalBooks as item}
                           <button
                               class="flex w-full items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 text-left shadow-sm transition hover:border-violet-100"
                               on:click={() => goto(`/read/${getCoordinate(item.event)}`)}
@@ -152,8 +228,8 @@
               <div class="max-w-2xl mx-auto py-8">
                   <EmptyState 
                     icon="Books" 
-                    title="No books found" 
-                    description="We couldn't find any books on the relays. Try again later or sign in." 
+                    title={selectedTopic ? `No books for #${selectedTopic}` : 'No books found'} 
+                    description={selectedTopic ? `No books match #${selectedTopic}. Try another topic or clear the filter.` : "We couldn't find any books on the relays. Try again later or sign in."} 
                     actionLabel="Go to Login"
                     onaction={() => goto('/login')}
                   />
@@ -186,15 +262,19 @@
                   </div>
                   <a href="/writer" class="text-xs text-violet-600 hover:underline">Write on Binder</a>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                  {#each newAuthors as item}
-                      <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
-                  {/each}
-              </div>
+              {#if filteredNewAuthors.length > 0}
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                      {#each filteredNewAuthors as item}
+                          <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
+                      {/each}
+                  </div>
+              {:else if selectedTopic}
+                  <p class="text-sm text-slate-500">No new authors match #{selectedTopic} yet.</p>
+              {/if}
           </section>
       {/if}
 
-      {#if hotReads.length > 0}
+      {#if filteredHotReads.length > 0}
           <section class="space-y-4">
               <div class="flex items-center justify-between">
                   <div>
@@ -206,14 +286,22 @@
                   </Button>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {#each hotReads as item}
+                  {#each filteredHotReads as item}
                       <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                   {/each}
               </div>
           </section>
+      {:else if selectedTopic}
+          <section>
+              <div class="flex items-center gap-2 mb-4">
+                  <Icon name="Pulse" class="text-violet-500" />
+                  <h2 class="text-lg font-bold text-slate-900">Hot Reads</h2>
+              </div>
+              <p class="text-sm text-slate-500">No trending books match #{selectedTopic} yet.</p>
+          </section>
       {/if}
 
-      {#if $discoverStore.network.length > 0}
+      {#if filteredNetwork.length > 0}
           <section>
               <div class="flex items-center gap-2 mb-4">
                   <Icon name="Pulse" class="text-violet-500" />
@@ -221,13 +309,13 @@
               </div>
               {#if $bookLayoutStore === 'grid'}
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {#each $discoverStore.network as item}
+                      {#each filteredNetwork as item}
                           <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                       {/each}
                   </div>
               {:else}
                   <div class="space-y-3">
-                      {#each $discoverStore.network as item}
+                      {#each filteredNetwork as item}
                           <button
                               class="flex w-full items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 text-left shadow-sm transition hover:border-violet-100"
                               on:click={() => goto(`/read/${getCoordinate(item.event)}`)}
@@ -247,9 +335,17 @@
                   </div>
               {/if}
           </section>
+      {:else if selectedTopic}
+          <section>
+              <div class="flex items-center gap-2 mb-4">
+                  <Icon name="Pulse" class="text-violet-500" />
+                  <h2 class="text-lg font-bold text-slate-900">Trusted by your network</h2>
+              </div>
+              <p class="text-sm text-slate-500">No network books match #{selectedTopic}.</p>
+          </section>
       {/if}
 
-      {#if $discoverStore.books.length > 0}
+      {#if filteredBooks.length > 0}
           <section>
               <div class="flex items-center gap-2 mb-4">
                   <Icon name="BookOpen" class="text-violet-500" />
@@ -257,13 +353,13 @@
               </div>
               {#if $bookLayoutStore === 'grid'}
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {#each $discoverStore.books as item}
+                      {#each filteredBooks as item}
                           <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                       {/each}
                   </div>
               {:else}
                   <div class="space-y-3">
-                      {#each $discoverStore.books as item}
+                      {#each filteredBooks as item}
                           <button
                               class="flex w-full items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 text-left shadow-sm transition hover:border-violet-100"
                               on:click={() => goto(`/read/${getCoordinate(item.event)}`)}
@@ -282,6 +378,14 @@
                       {/each}
                   </div>
               {/if}
+          </section>
+      {:else if selectedTopic}
+          <section>
+              <div class="flex items-center gap-2 mb-4">
+                  <Icon name="BookOpen" class="text-violet-500" />
+                  <h2 class="text-lg font-bold text-slate-900">New Books from Follows</h2>
+              </div>
+              <p class="text-sm text-slate-500">No followed books match #{selectedTopic} yet.</p>
           </section>
       {/if}
 

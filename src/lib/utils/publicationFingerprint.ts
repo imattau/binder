@@ -19,6 +19,8 @@ export async function bookFingerprint(book: LocalBook): Promise<string> {
     summary: book.summary ?? '',
     cover: book.cover ?? '',
     chapterOrder: book.chapterOrder,
+    topics: book.topics ?? [],
+    coAuthors: book.coAuthors ?? [],
     updatedAt: book.updatedAt
   });
   return hashString(payload);

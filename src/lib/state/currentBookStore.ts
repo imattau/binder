@@ -35,6 +35,11 @@ function createCurrentBookStore() {
                         const event = res.value;
                         const title = event.tags.find(t => t[0] === 'title')?.[1] || 'Untitled';
                         const summary = event.tags.find(t => t[0] === 'summary')?.[1];
+                        const topics = event.tags.filter(t => t[0] === 't').map(t => t[1]).filter((value): value is string => Boolean(value));
+                        const coAuthors = event.tags
+                            .filter(t => t[0] === 'p')
+                            .map(t => t[1])
+                            .filter((value, index, list) => typeof value === 'string' && value !== event.pubkey && list.indexOf(value) === index);
                         
                         // Security: Enforce Same-Author Policy
                         // Only load chapters that belong to the Book's author.
@@ -95,6 +100,8 @@ function createCurrentBookStore() {
                                 title,
                                 summary,
                                 tags: [],
+                                topics,
+                                coAuthors,
                                 chapterOrder: chapterCoords,
                                 createdAt: event.created_at,
                                 updatedAt: event.created_at,
@@ -121,7 +128,15 @@ function createCurrentBookStore() {
                     return indexA - indexB;
                 });
 
-                set({ book: bookRes.value, chapters, loading: false });
+                set({ 
+                    book: {
+                        ...bookRes.value,
+                        topics: bookRes.value.topics ?? [],
+                        coAuthors: bookRes.value.coAuthors ?? []
+                    },
+                    chapters,
+                    loading: false 
+                });
             } else {
                 set({ book: null, chapters: [], loading: false });
             }

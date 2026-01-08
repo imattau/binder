@@ -1,5 +1,6 @@
 import { bookRepo } from '$lib/infra/storage/bookRepo';
 import { chapterRepo } from '$lib/infra/storage/chapterRepo';
+import { syncStatusStore } from '$lib/state/syncStatusStore';
 import type { LocalBook } from '$lib/domain/types';
 import { ok, fail, type Result } from '$lib/domain/result';
 import { v4 as uuidv4 } from 'uuid';
@@ -18,6 +19,8 @@ export const bookService = {
             summary,
             cover,
             tags: [],
+            topics: [],
+            coAuthors: [],
             chapterOrder: [],
             createdAt: Date.now(),
             updatedAt: Date.now(),
@@ -44,6 +47,7 @@ export const bookService = {
         const res = await bookRepo.save(book);
         if (!res.ok) return res;
         void draftSyncService.syncBook(book.id);
+        syncStatusStore.markDirty(book.id);
         return res;
     },
 
