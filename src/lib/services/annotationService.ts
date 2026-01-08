@@ -1,6 +1,7 @@
 import { subscriptions } from '$lib/infra/nostr/subscriptions';
 import { ok, type Result } from '$lib/domain/result';
 import type { NostrEvent } from 'nostr-tools';
+import { getCached, setCached } from '$lib/services/cacheService';
 
 export function getBookTag(event: NostrEvent): string | null {
   return event.tags.find(t => t[0] === 'book')?.[1] || null;
@@ -11,6 +12,12 @@ export const annotationService = {
     if (bookDs.length === 0) {
       return ok({});
     }
+    const cacheKey = buildAnnotationCacheKey(bookDs);
+    const cached = getCached<Record<string, number>>(cacheKey, 2 * 60 * 1000);
+    if (cached) {
+      return ok(cached);
+    }
+
     const res = await subscriptions.fetchAnnotationsForBooks(bookDs);
     if (!res.ok) return res;
 
@@ -24,3 +31,7 @@ export const annotationService = {
     return ok(counts);
   }
 };
+
+function buildAnnotationCacheKey(bookDs: string[]): string {
+  return `annotations:${bookDs.slice().sort().join('|')}`;
+}
