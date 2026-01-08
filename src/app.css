@@ -32,6 +32,28 @@
     --shadow-float: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
 
+  :root[data-theme='dark'] {
+    --surface-0: #050608;
+    --surface-1: #0c1016;
+    --surface-2: #161b22;
+    --surface-3: #1f2631;
+    
+    --text-0: #f8fafc;
+    --text-1: #d1dae5;
+    --text-2: #94a3b8;
+    --text-3: #64748b;
+
+    --primary: #a855f7;
+    --primary-hover: #7c3aed;
+    --primary-subtle: rgba(167, 139, 250, 0.15);
+
+    --border: #1f2633;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.45), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
+    --shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.6);
+  }
+
   body {
     background-color: var(--surface-1);
     color: var(--text-0);
@@ -60,6 +82,52 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+:root[data-theme='dark'] .prose {
+  color: var(--text-1);
+}
+:root[data-theme='dark'] .prose h1,
+:root[data-theme='dark'] .prose h2,
+:root[data-theme='dark'] .prose h3,
+:root[data-theme='dark'] .prose h4 {
+  color: var(--text-0);
+}
+:root[data-theme='dark'] .prose a {
+  color: var(--primary);
+}
+
+:root[data-theme='dark'] .bg-white {
+  background-color: var(--surface-2) !important;
+}
+:root[data-theme='dark'] .bg-slate-50,
+:root[data-theme='dark'] .bg-slate-100,
+:root[data-theme='dark'] .bg-slate-200 {
+  background-color: var(--surface-3) !important;
+}
+:root[data-theme='dark'] .border-slate-100,
+:root[data-theme='dark'] .border-slate-200,
+:root[data-theme='dark'] .border-gray-200 {
+  border-color: var(--border) !important;
+}
+:root[data-theme='dark'] .text-slate-900 {
+  color: var(--text-0) !important;
+}
+:root[data-theme='dark'] .text-slate-700,
+:root[data-theme='dark'] .text-gray-500,
+:root[data-theme='dark'] .text-slate-500 {
+  color: var(--text-1) !important;
+}
+:root[data-theme='dark'] .text-slate-400,
+:root[data-theme='dark'] .text-gray-400 {
+  color: var(--text-2) !important;
 }
 
 /* Prose overrides for Merriweather reading experience */

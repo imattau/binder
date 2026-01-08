@@ -4,38 +4,49 @@
   import { authStore } from '$lib/state/authStore';
   import { settingsStore } from '$lib/state/settingsStore';
   import { mediaSettingsStore } from '$lib/state/mediaSettingsStore';
+  import { themeStore, type ThemePreference } from '$lib/state/themeStore';
   import SectionHeader from '$lib/ui/components/SectionHeader.svelte';
   import Card from '$lib/ui/components/Card.svelte';
   import Button from '$lib/ui/components/Button.svelte';
   import Input from '$lib/ui/components/Input.svelte';
   import type { MediaServerSetting } from '$lib/infra/storage/dexieDb';
-  import { walletSettingsService, type ZapWalletConfig } from '$lib/services/walletSettingsService';
-  import { lnurlService, type LnurlPayMetadata } from '$lib/services/lnurlService';
 
-  const existingWalletConfig = walletSettingsService.getConfig();
-  let walletConfig: ZapWalletConfig | null = existingWalletConfig;
-  let lnurlInput = existingWalletConfig?.lnurl ?? '';
-  let walletStatus = '';
-  let lnurlMetadata: LnurlPayMetadata | null = existingWalletConfig ? {
-      callback: existingWalletConfig.callback,
-      maxSendable: existingWalletConfig.maxSendable,
-      minSendable: existingWalletConfig.minSendable,
-      commentAllowed: existingWalletConfig.commentAllowed,
-      metadata: '',
-      tag: existingWalletConfig.label
-  } : null;
+  let newRelayUrl = $state('');
+  let newMediaServerUrl = $state('');
+  let newMediaProvider = $state<MediaServerSetting['provider']>('standard');
+  const themeOptions: { label: string; description: string; value: ThemePreference }[] = [
+      {
+          label: 'Auto (follow system)',
+          description: 'Binder mirrors your OS preference.',
+          value: 'auto'
+      },
+      {
+          label: 'Light',
+          description: 'Always use the light background palette.',
+          value: 'light'
+      },
+      {
+          label: 'Dark',
+          description: 'Force the charcoal dark theme.',
+          value: 'dark'
+      }
+  ];
 
-  let newRelayUrl = '';
-  let newMediaServerUrl = '';
-  let newMediaProvider: MediaServerSetting['provider'] = 'standard';
+  function selectTheme(value: ThemePreference) {
+      themeStore.setTheme(value);
+  }
+
+  $effect(() => {
+      if (!$authStore.pubkey) {
+          goto('/login');
+      }
+  });
 
   onMount(() => {
-    if (!$authStore.pubkey) {
-        goto('/login');
-        return;
+    if ($authStore.pubkey) {
+        settingsStore.load();
+        mediaSettingsStore.load();
     }
-    settingsStore.load();
-    mediaSettingsStore.load();
   });
 
   function addRelay() {
@@ -82,58 +93,6 @@
       );
       mediaSettingsStore.save(updated);
   }
-
-  async function validateWalletLnurl() {
-      if (!lnurlInput.trim()) {
-          walletStatus = 'Enter a Lightning Address or LNURL string.';
-          lnurlMetadata = null;
-          return;
-      }
-      walletStatus = 'Looking up wallet...';
-      const res = await lnurlService.fetchPayMetadata(lnurlInput.trim());
-      if (res.ok) {
-          lnurlMetadata = res.value;
-          walletStatus = `LNURL ready (min ${res.value.minSendable / 1000} sats).`;
-      } else {
-          walletStatus = res.error.message;
-          lnurlMetadata = null;
-      }
-  }
-
-  function saveWallet() {
-      if (!lnurlInput.trim() || !lnurlMetadata) return;
-      const config: ZapWalletConfig = {
-          label: lnurlMetadata.tag || 'zap wallet',
-          lnurl: lnurlInput.trim(),
-          callback: lnurlMetadata.callback,
-          minSendable: lnurlMetadata.minSendable,
-          maxSendable: lnurlMetadata.maxSendable,
-          commentAllowed: lnurlMetadata.commentAllowed
-      };
-      const res = walletSettingsService.setConfig(config);
-      if (res.ok) {
-          walletConfig = config;
-          walletStatus = 'Wallet saved.';
-          lnurlMetadata = {
-              ...lnurlMetadata,
-              tag: config.label
-          };
-      } else {
-          walletStatus = res.error.message;
-      }
-  }
-
-  function clearWallet() {
-      const res = walletSettingsService.clearConfig();
-      if (res.ok) {
-          walletConfig = null;
-          walletStatus = 'Wallet cleared.';
-          lnurlInput = '';
-          lnurlMetadata = null;
-      } else {
-          walletStatus = res.error.message;
-      }
-  }
 </script>
 
 <SectionHeader title="Settings" subtitle="Manage your relay connections" />
@@ -161,6 +120,28 @@
       </div>
       <Button onclick={addRelay}>Add Relay</Button>
     </div>
+  </div>
+</Card>
+
+<Card title="Appearance">
+  <div class="space-y-4">
+      <div class="flex flex-wrap gap-3">
+          {#each themeOptions as option}
+              <div class="flex flex-col gap-2">
+                  <Button
+                      variant={$themeStore === option.value ? 'primary' : 'secondary'}
+                      size="sm"
+                      onclick={() => selectTheme(option.value)}
+                  >
+                      {option.label}
+                  </Button>
+                  <p class="text-xs text-slate-500">{option.description}</p>
+              </div>
+          {/each}
+      </div>
+      <p class="text-xs text-slate-400">
+        Current preference: <span class="font-semibold">{($themeStore === 'auto' ? 'Auto (system)' : $themeStore)}</span>
+      </p>
   </div>
 </Card>
 
@@ -200,35 +181,5 @@
         Standard servers use NIP-96 uploads; Blossom servers require NIP-98 signed authorization.
       </p>
     </div>
-  </div>
-</Card>
-
-<Card title="Zap Wallet">
-    <div class="space-y-4">
-      {#if walletConfig}
-        <div class="flex items-center justify-between gap-4 text-sm text-slate-700">
-          <div>
-            <p class="font-semibold text-slate-900">{walletConfig.label}</p>
-            <p class="text-xs text-slate-500 truncate">{walletConfig.lnurl}</p>
-            <p class="text-xs text-slate-500">
-              Amount range: {walletConfig.minSendable / 1000}-{walletConfig.maxSendable / 1000} sats
-            </p>
-          </div>
-        <Button variant="secondary" onclick={clearWallet}>Disconnect</Button>
-      </div>
-    {:else}
-      <div class="space-y-2">
-        <Input bind:value={lnurlInput} placeholder="lnurl1dp68gurn8ghj7..." />
-        <div class="flex gap-2">
-          <Button onclick={validateWalletLnurl}>Validate</Button>
-          <Button variant="secondary" onclick={saveWallet} disabled={!lnurlInput.trim()}>Save Wallet</Button>
-        </div>
-        <p class="text-xs text-slate-400">{walletStatus}</p>
-        {#if lnurlMetadata}
-          <p class="text-xs text-slate-500">Domain: {new URL(lnurlMetadata.callback).hostname}</p>
-          <p class="text-xs text-slate-500">Limits: {lnurlMetadata.minSendable / 1000}-{lnurlMetadata.maxSendable / 1000} sats</p>
-        {/if}
-      </div>
-    {/if}
   </div>
 </Card>
