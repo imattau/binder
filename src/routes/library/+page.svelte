@@ -46,6 +46,17 @@
           reason: 'Saved'
       };
   }
+
+  async function handleCreateShelf() {
+      const name = typeof window !== 'undefined' ? window.prompt('Shelf name:') : null;
+      if (!name) return;
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const res = await libraryStore.createShelf(trimmed);
+      if (res.ok) {
+          activeShelfId = res.value.id;
+      }
+  }
 </script>
 
   <div class="space-y-6">
@@ -54,7 +65,7 @@
         <div class="flex items-center gap-3">
           <LayoutToggle />
           {#if $authStore.pubkey}
-            <Button onclick={() => alert('Create shelf not impl yet in this view')}>
+            <Button onclick={handleCreateShelf}>
                 <div class="flex items-center gap-2">
                     <Icon name="Plus" /> New Shelf
                 </div>

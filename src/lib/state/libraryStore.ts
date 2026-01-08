@@ -56,6 +56,7 @@ function createLibraryStore() {
                     console.warn('Library sync publish failed', syncRes.error);
                 }
             }
+            return res;
         },
         toggleShelf: async (book: SavedBook, shelfId: string) => {
             let updatedBook: SavedBook | null = null;
