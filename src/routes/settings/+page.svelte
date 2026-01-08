@@ -10,6 +10,7 @@
   import Button from '$lib/ui/components/Button.svelte';
   import Input from '$lib/ui/components/Input.svelte';
   import Icon from '$lib/ui/components/Icon.svelte';
+  import CollapsibleSection from '$lib/ui/components/CollapsibleSection.svelte';
   import type { MediaServerSetting } from '$lib/infra/storage/dexieDb';
   import { schemaService } from '$lib/services/schemaService';
 
@@ -116,92 +117,100 @@
 
 <SectionHeader title="Settings" subtitle="Manage your relay connections" />
 
-<Card title="Relays">
-  <div class="space-y-4">
-    {#each $settingsStore as relay}
-      <div class="flex items-center justify-between p-3 bg-slate-50 rounded-md">
-        <div class="flex items-center gap-3 overflow-hidden">
-            <input 
-                type="checkbox" 
-                checked={relay.enabled} 
-                onchange={() => toggleRelay(relay.url)}
-                class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-slate-300 rounded"
-            />
-            <span class="text-sm font-mono text-slate-700 truncate">{relay.url}</span>
+<div class="space-y-5 mt-6">
+  <CollapsibleSection title="Relays" description="Enable or remove relay endpoints that Binder should use.">
+    <Card>
+      <div class="space-y-4">
+        {#each $settingsStore as relay}
+          <div class="flex items-center justify-between p-3 bg-slate-50 rounded-md">
+            <div class="flex items-center gap-3 overflow-hidden">
+                <input 
+                    type="checkbox" 
+                    checked={relay.enabled} 
+                    onchange={() => toggleRelay(relay.url)}
+                    class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-slate-300 rounded"
+                />
+                <span class="text-sm font-mono text-slate-700 truncate">{relay.url}</span>
+            </div>
+            <Button variant="danger" onclick={() => removeRelay(relay.url)}>Remove</Button>
+          </div>
+        {/each}
+
+        <div class="flex gap-2 mt-6 pt-4 border-t border-slate-200">
+          <div class="flex-grow">
+            <Input bind:value={newRelayUrl} placeholder="wss://relay.example.com" />
+          </div>
+          <Button onclick={addRelay}>Add Relay</Button>
         </div>
-        <Button variant="danger" onclick={() => removeRelay(relay.url)}>Remove</Button>
       </div>
-    {/each}
+    </Card>
+  </CollapsibleSection>
 
-    <div class="flex gap-2 mt-6 pt-4 border-t border-slate-200">
-      <div class="flex-grow">
-        <Input bind:value={newRelayUrl} placeholder="wss://relay.example.com" />
+  <CollapsibleSection title="Appearance" description="Pick between light, dark, or follow your system preference.">
+    <Card>
+      <div class="space-y-4">
+          <div class="flex flex-wrap gap-3">
+              {#each themeOptions as option}
+                  <div class="flex flex-col gap-2">
+                      <Button
+                          variant={$themeStore === option.value ? 'primary' : 'secondary'}
+                          size="sm"
+                          onclick={() => selectTheme(option.value)}
+                      >
+                          {option.label}
+                      </Button>
+                      <p class="text-xs text-slate-500">{option.description}</p>
+                  </div>
+              {/each}
+          </div>
+          <p class="text-xs text-slate-400">
+            Current preference: <span class="font-semibold">{($themeStore === 'auto' ? 'Auto (system)' : $themeStore)}</span>
+          </p>
       </div>
-      <Button onclick={addRelay}>Add Relay</Button>
-    </div>
-  </div>
-</Card>
+    </Card>
+  </CollapsibleSection>
 
-<Card title="Appearance">
-  <div class="space-y-4">
-      <div class="flex flex-wrap gap-3">
-          {#each themeOptions as option}
-              <div class="flex flex-col gap-2">
-                  <Button
-                      variant={$themeStore === option.value ? 'primary' : 'secondary'}
-                      size="sm"
-                      onclick={() => selectTheme(option.value)}
-                  >
-                      {option.label}
-                  </Button>
-                  <p class="text-xs text-slate-500">{option.description}</p>
-              </div>
-          {/each}
-      </div>
-      <p class="text-xs text-slate-400">
-        Current preference: <span class="font-semibold">{($themeStore === 'auto' ? 'Auto (system)' : $themeStore)}</span>
-      </p>
-  </div>
-</Card>
+  <CollapsibleSection title="Media Servers" description="Configure the upload endpoints Binder uses for images">
+    <Card>
+      <div class="space-y-4">
+        {#each $mediaSettingsStore as server}
+          <div class="flex items-center justify-between p-3 bg-slate-50 rounded-md">
+            <div class="flex items-center gap-3 overflow-hidden">
+                <input 
+                    type="checkbox" 
+                    checked={server.enabled} 
+                    onchange={() => toggleMediaServer(server.url)}
+                    class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-slate-300 rounded"
+                />
+                <span class="text-sm font-mono text-slate-700 truncate">{server.url}</span>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    {server.provider === 'blossom' ? 'Blossom (NIP-98)' : server.provider === 'standard' ? 'Standard (NIP-96)' : 'Custom'}
+                </span>
+            </div>
+            <Button variant="danger" onclick={() => removeMediaServer(server.url)}>Remove</Button>
+          </div>
+        {/each}
 
-<Card title="Media Servers">
-  <div class="space-y-4">
-    {#each $mediaSettingsStore as server}
-      <div class="flex items-center justify-between p-3 bg-slate-50 rounded-md">
-        <div class="flex items-center gap-3 overflow-hidden">
-            <input 
-                type="checkbox" 
-                checked={server.enabled} 
-                onchange={() => toggleMediaServer(server.url)}
-                class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-slate-300 rounded"
-            />
-            <span class="text-sm font-mono text-slate-700 truncate">{server.url}</span>
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                {server.provider === 'blossom' ? 'Blossom (NIP-98)' : server.provider === 'standard' ? 'Standard (NIP-96)' : 'Custom'}
-            </span>
+        <div class="flex flex-col gap-2 mt-6 pt-4 border-t border-slate-200">
+          <div class="flex gap-2">
+            <div class="flex-1">
+              <Input bind:value={newMediaServerUrl} placeholder="https://media.server/upload" />
+            </div>
+            <select bind:value={newMediaProvider} class="border border-slate-200 rounded px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-violet-500">
+              <option value="standard">Standard (NIP-96)</option>
+              <option value="blossom">Blossom (NIP-98)</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <Button onclick={addMediaServer} class="self-end">Add Media Server</Button>
+          <p class="text-xs text-slate-400">
+            Standard servers use NIP-96 uploads; Blossom servers require NIP-98 signed authorization.
+          </p>
         </div>
-        <Button variant="danger" onclick={() => removeMediaServer(server.url)}>Remove</Button>
       </div>
-    {/each}
-
-    <div class="flex flex-col gap-2 mt-6 pt-4 border-t border-slate-200">
-      <div class="flex gap-2">
-        <div class="flex-1">
-          <Input bind:value={newMediaServerUrl} placeholder="https://media.server/upload" />
-        </div>
-        <select bind:value={newMediaProvider} class="border border-slate-200 rounded px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-violet-500">
-          <option value="standard">Standard (NIP-96)</option>
-          <option value="blossom">Blossom (NIP-98)</option>
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-      <Button onclick={addMediaServer} class="self-end">Add Media Server</Button>
-      <p class="text-xs text-slate-400">
-        Standard servers use NIP-96 uploads; Blossom servers require NIP-98 signed authorization.
-      </p>
-    </div>
-  </div>
-</Card>
+    </Card>
+  </CollapsibleSection>
+</div>
 
 <Card title="Binder Schema">
   <div class="space-y-3">
