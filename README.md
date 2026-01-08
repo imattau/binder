@@ -138,6 +138,18 @@ Binder works with DigitalOcean droplets or the App Platform thanks to standard N
 
 In both DO scenarios you can automate future releases by re-running `npm run build` after pulling new commits and restarting the systemd service or App deployment.
 
+### 6. Deploying via Docker
+
+Binder includes a `Dockerfile` that builds the site (`npm install`, `npm run build`) and runs the production bundle with `npm run preview -- --host 0.0.0.0 --port ${PORT:-4173}`. The image exposes `PORT` (default 4173) and inherits environment variables for relays/media servers/signers via the usual npm runtime. Use the Dockerfile locally or on DigitalOcean’s App Platform, Docker Hub, or any container host:
+
+```bash
+docker build -t binder:latest .
+# optional: push to a registry or App Platform project
+docker run --env BINDER_PORT=4173 --env RELAY_LIST=\"wss://relay.damus.io\" -p 4173:4173 binder:latest
+```
+
+For DO App Platform containers, point the service at the same Dockerfile (or your own Docker image) and specify the build/publish/pull settings. The App Platform will handle certificates when you attach a domain, and any provided ENV vars (`RELAY_LIST`, `MEDIA_SERVER`, `BINDER_PORT`, etc.) are injected automatically. For VPS-based Docker hosts, pair the container with Caddy/nginx using the examples in `deploy/`, or run Docker behind DO’s load balancer.
+
 ## Contributing
 
 - Follow the existing code style (Svelte + Tailwind). Add tests (or describe manual steps) when touching complex services.
