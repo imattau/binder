@@ -198,7 +198,7 @@
               </div>
           {:else if filteredGlobalBooks.length > 0}
               {#if $bookLayoutStore === 'grid'}
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {#each filteredGlobalBooks as item}
                           <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                       {/each}
@@ -263,7 +263,7 @@
                   <a href="/writer" class="text-xs text-violet-600 hover:underline">Write on Binder</a>
               </div>
               {#if filteredNewAuthors.length > 0}
-                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {#each filteredNewAuthors as item}
                           <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                       {/each}
@@ -308,7 +308,7 @@
                   <h2 class="text-lg font-bold text-slate-900">Trusted by your network</h2>
               </div>
               {#if $bookLayoutStore === 'grid'}
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {#each filteredNetwork as item}
                           <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                       {/each}
@@ -352,7 +352,7 @@
                   <h2 class="text-lg font-bold text-slate-900">New Books from Follows</h2>
               </div>
               {#if $bookLayoutStore === 'grid'}
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {#each filteredBooks as item}
                           <BookCard {item} annotationCount={$discoverStore.annotations[getBookD(item.event)] ?? 0} />
                       {/each}
