@@ -47,8 +47,8 @@ function createLibraryStore() {
                 });
             }
         },
-        createShelf: async (name: string) => {
-            const res = await libraryService.createShelf(name);
+        createShelf: async (name: string, isPrivate = false) => {
+            const res = await libraryService.createShelf(name, isPrivate);
             if (res.ok) {
                 update(s => ({ ...s, shelves: [...s.shelves, res.value] }));
                 const syncRes = await librarySyncService.publishLibrarySnapshot();

@@ -30,7 +30,8 @@
     Export,
     Globe,
     ArrowRight,
-    Copy
+    Copy,
+    Lock
   } from 'phosphor-svelte';
   import type { IconName } from './iconTypes';
 
@@ -67,7 +68,8 @@
     ListBullets,
     SquaresFour,
     ArrowRight,
-    Copy
+    Copy,
+    Lock
   };
   
   const IconComponent = $derived(iconMap[name as keyof typeof iconMap]);

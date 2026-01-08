@@ -69,6 +69,11 @@ export const librarySyncService = {
     const booksRes = await libraryRepo.getSavedBooks();
     if (!booksRes.ok) return fail(booksRes.error);
     
+    const shelvesRes = await libraryService.getShelves();
+    if (!shelvesRes.ok) return fail(shelvesRes.error);
+
+    const privateShelfIds = new Set(shelvesRes.value.filter(s => s.private).map(s => s.id));
+
     const publicTags = [
         ['d', LIBRARY_SET_D],
         ['t', 'binder-book'],
@@ -76,11 +81,12 @@ export const librarySyncService = {
     ];
     
     booksRes.value.forEach(book => {
-        // Construct 'a' tag: kind:pubkey:d
-        // SavedBook.id is likely the 'a' tag value or we construct it
-        // Assuming book.id might be just 'd' or full coord. 
-        // SavedBook interface says: id, kind, pubkey, d.
-        publicTags.push(['a', `${book.kind}:${book.pubkey}:${book.d}`]);
+        // Include if book is in NO shelves (default public) OR has at least one non-private shelf
+        const isPublic = book.shelves.length === 0 || book.shelves.some(id => !privateShelfIds.has(id));
+        
+        if (isPublic) {
+            publicTags.push(['a', `${book.kind}:${book.pubkey}:${book.d}`]);
+        }
     });
 
     const publicTemplate: EventTemplate = {
@@ -91,6 +97,10 @@ export const librarySyncService = {
     };
 
     // 2. Prepare Private State (Kind 30078)
+    // We already have shelvesRes, re-use logic but careful with async/await structure if refactoring
+    // Let's call buildStatePayload but we already fetched data. 
+    // Optimization: refactor buildStatePayload to accept data, or just let it fetch again (Dexie is fast).
+    // For simplicity, calling buildStatePayload() as before.
     const stateRes = await buildStatePayload();
     if (!stateRes.ok) return fail(stateRes.error);
 

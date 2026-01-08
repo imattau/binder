@@ -11,9 +11,11 @@
   import Icon from '$lib/ui/components/Icon.svelte';
   import Tabs from '$lib/ui/components/Tabs.svelte';
   import ListRow from '$lib/ui/components/ListRow.svelte';
+  import CreateShelfModal from '$lib/ui/components/library/CreateShelfModal.svelte';
   import { formatDistanceToNow } from 'date-fns';
 
   let activeShelfId = $state('favorites');
+  let showCreateModal = $state(false);
 
   $effect(() => {
       if (!$authStore.pubkey) {
@@ -28,6 +30,7 @@
   });
 
   const activeBooks = $derived($libraryStore.books.filter(b => b.shelves.includes(activeShelfId)));
+  const currentShelf = $derived($libraryStore.shelves.find(s => s.id === activeShelfId));
   
   function toFeedItem(book: any): any {
       return {
@@ -47,17 +50,20 @@
       };
   }
 
-  async function handleCreateShelf() {
-      const name = typeof window !== 'undefined' ? window.prompt('Shelf name:') : null;
-      if (!name) return;
-      const trimmed = name.trim();
-      if (!trimmed) return;
-      const res = await libraryStore.createShelf(trimmed);
+  async function handleSaveShelf(name: string, isPrivate: boolean) {
+      const res = await libraryStore.createShelf(name, isPrivate);
       if (res.ok) {
           activeShelfId = res.value.id;
       }
   }
 </script>
+
+  {#if showCreateModal}
+    <CreateShelfModal 
+        onClose={() => showCreateModal = false}
+        onSave={handleSaveShelf}
+    />
+  {/if}
 
   <div class="space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -65,7 +71,7 @@
         <div class="flex items-center gap-3">
           <LayoutToggle />
           {#if $authStore.pubkey}
-            <Button onclick={handleCreateShelf}>
+            <Button onclick={() => showCreateModal = true}>
                 <div class="flex items-center gap-2">
                     <Icon name="Plus" /> New Shelf
                 </div>
@@ -74,11 +80,19 @@
         </div>
     </div>
 
-  <Tabs 
-      items={$libraryStore.shelves.map(s => ({ id: s.id, label: s.name }))}
-      activeItem={activeShelfId}
-      onchange={(id: string) => activeShelfId = id}
-  />
+  <div class="space-y-2">
+      <Tabs 
+          items={$libraryStore.shelves.map(s => ({ id: s.id, label: s.name + (s.private ? ' 🔒' : '') }))}
+          activeItem={activeShelfId}
+          onchange={(id: string) => activeShelfId = id}
+      />
+      {#if currentShelf?.private}
+          <div class="flex items-center gap-2 text-xs text-slate-500 px-1">
+              <Icon name="Lock" size={12} />
+              <span>Private Shelf • Not visible in public bookmarks</span>
+          </div>
+      {/if}
+  </div>
 
   {#if activeBooks.length === 0}
       <div class="text-center py-12 bg-slate-50 rounded-lg text-slate-500 border border-slate-100">

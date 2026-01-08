@@ -29,4 +29,5 @@ export type IconName =
     | 'ListBullets'
     | 'SquaresFour'
     | 'ArrowRight'
-    | 'Copy';
+    | 'Copy'
+    | 'Lock';

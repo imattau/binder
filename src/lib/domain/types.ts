@@ -92,6 +92,7 @@ export interface Shelf {
     id: string;
     name: string;
     isSystem: boolean; // e.g. "Favorites"
+    private?: boolean; // If true, books in this shelf (and not others) are excluded from public bookmarks
     createdAt: number;
 }
 

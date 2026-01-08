@@ -54,11 +54,12 @@ export const libraryService = {
         return libraryRepo.removeBook(id);
     },
 
-    async createShelf(name: string): Promise<Result<Shelf>> {
+    async createShelf(name: string, isPrivate = false): Promise<Result<Shelf>> {
         const shelf: Shelf = {
             id: uuidv4(),
             name,
             isSystem: false,
+            private: isPrivate,
             createdAt: Date.now()
         };
         const res = await libraryRepo.saveShelf(shelf);
