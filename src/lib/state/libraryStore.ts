@@ -26,6 +26,18 @@ function createLibraryStore() {
         loading: false
     });
 
+    let syncTimeout: ReturnType<typeof setTimeout>;
+
+    const debouncedSync = () => {
+        clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(async () => {
+            const syncRes = await librarySyncService.publishLibrarySnapshot();
+            if (!syncRes.ok) {
+                console.warn('Library sync publish failed', syncRes.error);
+            }
+        }, 2000);
+    };
+
     return {
         subscribe,
         load: async () => {
@@ -51,10 +63,7 @@ function createLibraryStore() {
             const res = await libraryService.createShelf(name, isPrivate);
             if (res.ok) {
                 update(s => ({ ...s, shelves: [...s.shelves, res.value] }));
-                const syncRes = await librarySyncService.publishLibrarySnapshot();
-                if (!syncRes.ok) {
-                    console.warn('Library sync publish failed', syncRes.error);
-                }
+                debouncedSync();
             }
             return res;
         },
@@ -85,10 +94,7 @@ function createLibraryStore() {
                 if (!res.ok) {
                     console.warn('Failed to persist library book', res.error);
                 }
-                const syncRes = await librarySyncService.publishLibrarySnapshot();
-                if (!syncRes.ok) {
-                    console.warn('Library sync publish failed', syncRes.error);
-                }
+                debouncedSync();
             }
         },
         upsertBook: (book: SavedBook) => {

@@ -1,11 +1,17 @@
 import { pool, getActiveRelays } from './pool';
 import type { Filter, NostrEvent } from 'nostr-tools';
 import { ok, fail, type Result } from '$lib/domain/result';
+import { relayDiscoveryService } from '$lib/services/relayDiscoveryService';
 
 export const subscriptions = {
     async fetchFeed(filter: Filter, limit = 20): Promise<Result<NostrEvent[]>> {
-        const relays = await getActiveRelays();
+        let relays = await getActiveRelays();
         if (relays.length === 0) return fail({ message: 'No relays configured' });
+
+        // NIP-65 Optimization: If authors are specified, include their preferred relays
+        if (filter.authors && filter.authors.length > 0) {
+            relays = await relayDiscoveryService.getMergedRelays(filter.authors, relays);
+        }
 
         try {
             const events = await pool.querySync(relays, {

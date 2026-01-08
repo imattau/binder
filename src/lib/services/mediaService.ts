@@ -164,6 +164,6 @@ async function uploadBlobToMedia(
 }
 
 export const mediaService = {
-    uploadCover: (file: Blob | File) => uploadBlobToMedia(file, undefined, { allowInlineFallback: true }),
+    uploadCover: (file: Blob | File) => uploadBlobToMedia(file),
     uploadImage: (file: Blob | File) => uploadBlobToMedia(file)
 };

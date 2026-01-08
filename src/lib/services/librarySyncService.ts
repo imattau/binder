@@ -97,18 +97,31 @@ export const librarySyncService = {
     };
 
     // 2. Prepare Private State (Kind 30078)
-    // We already have shelvesRes, re-use logic but careful with async/await structure if refactoring
-    // Let's call buildStatePayload but we already fetched data. 
-    // Optimization: refactor buildStatePayload to accept data, or just let it fetch again (Dexie is fast).
-    // For simplicity, calling buildStatePayload() as before.
     const stateRes = await buildStatePayload();
     if (!stateRes.ok) return fail(stateRes.error);
+
+    const payloadString = JSON.stringify(stateRes.value);
+    
+    // Checksum optimization
+    let currentHash = '';
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+        const msgBuffer = new TextEncoder().encode(payloadString);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        currentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        const lastHash = typeof localStorage !== 'undefined' ? localStorage.getItem('binder_last_sync_hash') : null;
+        if (lastHash === currentHash) {
+            console.log('[LibrarySync] Skipping sync, state unchanged.');
+            return ok(undefined);
+        }
+    }
 
     const keyRes = await getScopedSyncKey(STATE_SCOPE);
     if (!keyRes.ok) return fail(keyRes.error);
     
     const conversationKey = getConversationKey(keyRes.value);
-    const encryptedState = nip44.encrypt(JSON.stringify(stateRes.value), conversationKey);
+    const encryptedState = nip44.encrypt(payloadString, conversationKey);
 
     const stateTemplate: EventTemplate = {
         kind: STATE_KIND,
@@ -125,6 +138,11 @@ export const librarySyncService = {
     if (!signedState.ok) return fail(signedState.error);
 
     await publishEvents(relays, [signedPublic.value, signedState.value]);
+    
+    if (typeof localStorage !== 'undefined' && currentHash) {
+        localStorage.setItem('binder_last_sync_hash', currentHash);
+    }
+    
     return ok(undefined);
   },
 

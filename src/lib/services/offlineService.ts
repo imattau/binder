@@ -102,34 +102,42 @@ export const offlineService = {
                 await offlineRepo.saveBook(book);
 
                 // 4. Fetch Chapters
-                // Fetch individually or batched? Batch by author/kind/d list
-                // subscriptions needs a fetchByDList method? Or just loop.
-                // Loop for simplicity now.
-                
+                // Batch fetch chapters to improve performance
+                const BATCH_SIZE = 20;
                 let cachedCount = 0;
-                for (const chapterD of chapterRefs) {
+                
+                const chunks = [];
+                for (let i = 0; i < chapterRefs.length; i += BATCH_SIZE) {
+                    chunks.push(chapterRefs.slice(i, i + BATCH_SIZE));
+                }
+
+                for (const chunk of chunks) {
                     const chEvents = await subscriptions.fetchFeed({
                         kinds: [30023],
                         authors: [pubkey],
-                        '#d': [chapterD]
+                        '#d': chunk
                     });
-                    
-                    if (chEvents.ok && chEvents.value.length > 0) {
-                        const chEvent = chEvents.value[0];
-                        const chapter: PublishedChapter = {
-                            id: `${pubkey}:${chapterD}`,
-                            pubkey,
-                            chapterD,
-                            chapterEvent: chEvent,
-                            cachedAt: Date.now()
-                        };
-                        await offlineRepo.saveChapter(chapter);
-                        cachedCount++;
-                        
-                        // Update Job Progress
-                        job.progress = Math.round((cachedCount / chapterRefs.length) * 100);
-                        await offlineRepo.saveJob(job);
+
+                    if (chEvents.ok) {
+                        for (const chEvent of chEvents.value) {
+                            const d = chEvent.tags.find(t => t[0] === 'd')?.[1];
+                            if (!d) continue;
+
+                            const chapter: PublishedChapter = {
+                                id: `${pubkey}:${d}`,
+                                pubkey,
+                                chapterD: d,
+                                chapterEvent: chEvent,
+                                cachedAt: Date.now()
+                            };
+                            await offlineRepo.saveChapter(chapter);
+                            cachedCount++;
+                        }
                     }
+                    
+                    // Update Job Progress after each chunk
+                    job.progress = Math.round((cachedCount / chapterRefs.length) * 100);
+                    await offlineRepo.saveJob(job);
                 }
 
                 job.status = 'completed';
