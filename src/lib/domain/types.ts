@@ -163,3 +163,12 @@ export type OfflineStatus = {
     lastUpdated?: number;
     error?: string;
 };
+
+export interface ZapDetails {
+    callback: string;
+    minSendable: number;
+    maxSendable: number;
+    allowsNostr?: boolean;
+    nostrPubkey?: string;
+    metadata?: string;
+}

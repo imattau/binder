@@ -5,6 +5,7 @@ import { replyService } from '$lib/services/replyService';
 import { zapService } from '$lib/services/zapService';
 import type { NostrEvent } from 'nostr-tools';
 import type { Result } from '$lib/domain/result';
+import type { ZapDetails } from '$lib/domain/types';
 
 export interface SocialState {
     reactions: NostrEvent[];
@@ -68,8 +69,11 @@ export function createSocialStore() {
             }
             return res;
         },
-        requestZap: async (pubkey: string): Promise<Result<string>> => {
-            return zapService.requestZap(pubkey);
+        requestZap: async (details: ZapDetails, amount: number, nostrPubkey?: string): Promise<Result<string>> => {
+            return zapService.requestZap(details, amount, nostrPubkey);
+        },
+        resolveZap: async (pubkey: string): Promise<Result<ZapDetails>> => {
+            return zapService.resolveZapDetails(pubkey);
         }
     };
 }

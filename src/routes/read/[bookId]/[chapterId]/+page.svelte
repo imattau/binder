@@ -7,23 +7,30 @@
   import { createSocialStore } from '$lib/state/socialStore';
   import { wotStore } from '$lib/state/wotStore';
   import { authStore } from '$lib/state/authStore';
-  import { markdownService } from '$lib/services/markdownService';
-  import { libraryStore } from '$lib/state/libraryStore';
-  import { libraryService } from '$lib/services/libraryService';
-  import { readingProgressStore } from '$lib/state/readingProgressStore';
-  import type { LocalBook, LocalChapterDraft, ReadingProgress } from '$lib/domain/types';
-  import Button from '$lib/ui/components/Button.svelte';
-  import Icon from '$lib/ui/components/Icon.svelte';
-  import SocialActionBar from '$lib/ui/components/social/SocialActionBar.svelte';
-  import CommentSection from '$lib/ui/components/social/CommentSection.svelte';
+import { markdownService } from '$lib/services/markdownService';
+import { libraryStore } from '$lib/state/libraryStore';
+import { libraryService } from '$lib/services/libraryService';
+import { readingProgressStore } from '$lib/state/readingProgressStore';
+import type { LocalBook, LocalChapterDraft, ReadingProgress, ZapDetails } from '$lib/domain/types';
+import Button from '$lib/ui/components/Button.svelte';
+import Icon from '$lib/ui/components/Icon.svelte';
+import SocialActionBar from '$lib/ui/components/social/SocialActionBar.svelte';
+import CommentSection from '$lib/ui/components/social/CommentSection.svelte';
+import ZapAmountModal from '$lib/ui/components/ZapAmountModal.svelte';
 
   const bookId = $page.params.bookId || '';
   const chapterId = $page.params.chapterId || '';
   const chapterEventId = $page.url.searchParams.get('chapterEventId') || undefined;
   
-  const socialStore = createSocialStore();
-  let progressQueue: Promise<void> | null = null;
-  let lastRecordedChapterId = '';
+const socialStore = createSocialStore();
+let progressQueue: Promise<void> | null = null;
+let lastRecordedChapterId = '';
+let zapModalOpen = $state(false);
+let zapDetails = $state<ZapDetails | null>(null);
+let zapTargetPubkey = $state('');
+let zapInitialAmount = $state(0);
+let zapError = $state('');
+let zapLoading = $state(false);
 
   onMount(async () => {
       await Promise.all([
@@ -73,22 +80,45 @@
            alert('Author public key is unavailable.');
            return;
        }
-       const res = await socialStore.requestZap(authorPubkey);
-       if (res.ok) {
-           if (typeof window !== 'undefined') {
-               window.open(`lightning:${res.value}`, '_blank');
-           }
-       } else {
+
+       const res = await socialStore.resolveZap(authorPubkey);
+       if (!res.ok) {
            alert(res.error.message);
+           return;
        }
+
+       zapDetails = res.value;
+       zapTargetPubkey = authorPubkey;
+       zapInitialAmount = res.value.minSendable;
+       zapError = '';
+       zapModalOpen = true;
   }
 
-  $: if (
-      $authStore.pubkey &&
-      $currentChapterStore.chapter &&
-      $currentBookStore.book &&
-      $currentBookStore.chapters.length > 0
-  ) {
+  async function confirmZap(amount: number) {
+      if (!zapDetails || !zapTargetPubkey) return;
+      zapLoading = true;
+      const res = await socialStore.requestZap(zapDetails, amount, zapTargetPubkey);
+      zapLoading = false;
+      if (res.ok) {
+          zapModalOpen = false;
+          if (typeof window !== 'undefined') {
+              window.open(`lightning:${res.value}`, '_blank');
+          }
+      } else {
+          zapError = res.error.message;
+      }
+  }
+
+  $effect(() => {
+      if (
+          !$authStore.pubkey ||
+          !$currentChapterStore.chapter ||
+          !$currentBookStore.book ||
+          $currentBookStore.chapters.length === 0
+      ) {
+          return;
+      }
+
       const chapter = $currentChapterStore.chapter;
       const book = $currentBookStore.book;
       const idx = $currentBookStore.chapters.findIndex(c => c.id === chapter.id);
@@ -106,7 +136,7 @@
                   progressQueue = null;
               });
       }
-  }
+  });
 
   async function recordProgress(book: LocalBook, chapter: LocalChapterDraft, percent: number) {
       const progress: ReadingProgress = {
@@ -195,6 +225,17 @@
               />
           </div>
       </div>
+
+      <ZapAmountModal
+          open={zapModalOpen}
+          minSendable={zapDetails?.minSendable ?? 0}
+          maxSendable={zapDetails?.maxSendable ?? 0}
+          initialAmount={zapInitialAmount}
+          loading={zapLoading}
+          error={zapError}
+          onCancel={() => zapModalOpen = false}
+          onConfirm={confirmZap}
+      />
   </div>
 {:else}
   {#if $currentChapterStore.loading}

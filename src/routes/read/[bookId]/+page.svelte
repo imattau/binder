@@ -8,16 +8,17 @@
   import { authStore } from '$lib/state/authStore';
   import { offlineService } from '$lib/services/offlineService';
   import { exportService } from '$lib/services/exportService';
-  import SectionHeader from '$lib/ui/components/SectionHeader.svelte';
-  import Button from '$lib/ui/components/Button.svelte';
-  import Icon from '$lib/ui/components/Icon.svelte';
-  import Card from '$lib/ui/components/Card.svelte';
-  import ListRow from '$lib/ui/components/ListRow.svelte';
-  import SocialActionBar from '$lib/ui/components/social/SocialActionBar.svelte';
-  import CommentSection from '$lib/ui/components/social/CommentSection.svelte';
-  import Badge from '$lib/ui/components/Badge.svelte';
-  import { readingProgressStore } from '$lib/state/readingProgressStore';
-  import type { ReadingProgress } from '$lib/domain/types';
+import SectionHeader from '$lib/ui/components/SectionHeader.svelte';
+import Button from '$lib/ui/components/Button.svelte';
+import Icon from '$lib/ui/components/Icon.svelte';
+import Card from '$lib/ui/components/Card.svelte';
+import ListRow from '$lib/ui/components/ListRow.svelte';
+import SocialActionBar from '$lib/ui/components/social/SocialActionBar.svelte';
+import CommentSection from '$lib/ui/components/social/CommentSection.svelte';
+import Badge from '$lib/ui/components/Badge.svelte';
+import ZapAmountModal from '$lib/ui/components/ZapAmountModal.svelte';
+import { readingProgressStore } from '$lib/state/readingProgressStore';
+import type { ReadingProgress, ZapDetails } from '$lib/domain/types';
 
   const bookId = $page.params.bookId || '';
   const socialStore = createSocialStore(); 
@@ -28,6 +29,12 @@
   let progressTarget = '';
   let lastReadIndex = $state(-1);
   let bookProgress = $state<ReadingProgress | undefined>(undefined);
+  let zapModalOpen = $state(false);
+  let zapDetails = $state<ZapDetails | null>(null);
+  let zapTargetPubkey = $state('');
+  let zapInitialAmount = $state(0);
+  let zapError = $state('');
+  let zapLoading = $state(false);
 
   onMount(async () => {
       await currentBookStore.load(bookId || '');
@@ -120,22 +127,45 @@
   }
 
   async function handleZap() {
+      if (!$currentBookStore.book) return;
       const book = $currentBookStore.book;
-      if (!book) return;
+      if (!book.id.includes(':')) {
+          alert('Zap is only supported for published books.');
+          return;
+      }
 
       const parts = book.id.split(':');
       if (parts.length < 2) {
           alert('Zap is only supported for published books.');
           return;
       }
-      const pubkey = parts[1];
-      const res = await socialStore.requestZap(pubkey);
+
+      const authorPubkey = parts[1];
+      const res = await socialStore.resolveZap(authorPubkey);
+      if (!res.ok) {
+          alert(res.error.message);
+          return;
+      }
+
+      zapDetails = res.value;
+      zapTargetPubkey = authorPubkey;
+      zapInitialAmount = res.value.minSendable;
+      zapError = '';
+      zapModalOpen = true;
+  }
+
+  async function confirmZap(amount: number) {
+      if (!zapDetails || !zapTargetPubkey) return;
+      zapLoading = true;
+      const res = await socialStore.requestZap(zapDetails, amount, zapTargetPubkey);
+      zapLoading = false;
       if (res.ok) {
+          zapModalOpen = false;
           if (typeof window !== 'undefined') {
               window.open(`lightning:${res.value}`, '_blank');
           }
       } else {
-          alert(res.error.message);
+          zapError = res.error.message;
       }
   }
 
@@ -197,6 +227,17 @@
               onZap={handleZap}
           />
       </div>
+
+      <ZapAmountModal
+          open={zapModalOpen}
+          minSendable={zapDetails?.minSendable ?? 0}
+          maxSendable={zapDetails?.maxSendable ?? 0}
+          initialAmount={zapInitialAmount}
+          loading={zapLoading}
+          error={zapError}
+          onCancel={() => zapModalOpen = false}
+          onConfirm={confirmZap}
+      />
 
       <Card title="Table of Contents">
           {#if $authStore.pubkey && bookProgress}
