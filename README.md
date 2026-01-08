@@ -129,6 +129,15 @@ For nginx you must run Certbot manually (`sudo certbot --nginx -d binder.example
 
 Allow 80/443 (and the preview port only if you need direct access). Keep the service running via systemd, rebuild after `git pull` (`npm run build`), and restart the service. Logs live in `journalctl -u binder` and your reverse proxy’s log directory (e.g., `/var/log/caddy/`). For unattended updates, wrap `git pull && npm install && npm run build && sudo systemctl restart binder.service` in a cron/shell script.
 
+### 5. DigitalOcean-friendly deployments
+
+Binder works with DigitalOcean droplets or the App Platform thanks to standard Node/npm build output. Choose one of the following patterns:
+
+- **DigitalOcean App Platform + GitHub** – connect your repo, set `npm install` as the install command, `npm run build` as the build command, and `npm run preview -- --host 0.0.0.0 --port 4173` as the run command. Configure ENV vars (e.g., `BINDER_PORT`, `RELAY_LIST`, `MEDIA_SERVER`) in the App settings. App Platform handles HTTPS for you, so point your domain there and rely on the platform’s certificate management.
+- **Self-managed DigitalOcean droplet** – create an Ubuntu droplet, clone the repo (or use GitHub Actions to sync), and run `./scripts/setup-vps.sh`. Copy `deploy/binder.service`, `deploy/Caddyfile`, or `deploy/nginx.conf` into `/etc/systemd/system` and `/etc/caddy`/`/etc/nginx`, respectively. Use the script to install Node 20+, build, and print the next steps for systemd/Caddy/nginx. For cert renewal on nginx, run `sudo certbot renew` and reload nginx (`sudo systemctl reload nginx`). `setup-vps.sh` assumes `binder` user + `/var/www/binder`; adjust as necessary.
+
+In both DO scenarios you can automate future releases by re-running `npm run build` after pulling new commits and restarting the systemd service or App deployment.
+
 ## Contributing
 
 - Follow the existing code style (Svelte + Tailwind). Add tests (or describe manual steps) when touching complex services.
