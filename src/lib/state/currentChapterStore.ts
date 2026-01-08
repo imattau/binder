@@ -14,6 +14,10 @@ interface CurrentChapterState {
     isDirty: boolean;
 }
 
+interface RemoteChapterLoadOptions {
+    chapterEventId?: string;
+}
+
 function createCurrentChapterStore() {
     const { subscribe, set, update } = writable<CurrentChapterState>({
         chapter: null,
@@ -28,7 +32,7 @@ function createCurrentChapterStore() {
         set,
         update,
         reset: () => set({ chapter: null, snapshots: [], loading: false, loadError: undefined, isDirty: false }),
-        load: async (chapterId: string) => {
+        load: async (chapterId: string, options?: RemoteChapterLoadOptions) => {
             if (!chapterId) return;
             update(s => ({ ...s, loading: true, loadError: undefined }));
             
@@ -36,7 +40,9 @@ function createCurrentChapterStore() {
             let remoteError: string | undefined;
             if (chapterId.includes(':')) {
                 const [kind, pubkey, d] = chapterId.split(':');
-                const res = await contentCacheService.getChapter(pubkey, d, 'prefer-offline');
+                const res = options?.chapterEventId
+                    ? await contentCacheService.getChapterById(options.chapterEventId)
+                    : await contentCacheService.getChapter(pubkey, d, 'prefer-offline');
 
                 if (res.ok) {
                     const event = res.value;

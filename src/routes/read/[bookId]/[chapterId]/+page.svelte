@@ -19,6 +19,7 @@
 
   const bookId = $page.params.bookId || '';
   const chapterId = $page.params.chapterId || '';
+  const chapterEventId = $page.url.searchParams.get('chapterEventId') || undefined;
   
   const socialStore = createSocialStore();
   let progressQueue: Promise<void> | null = null;
@@ -27,7 +28,7 @@
   onMount(async () => {
       await Promise.all([
           currentBookStore.load(bookId || ''),
-          currentChapterStore.load(chapterId || '')
+          currentChapterStore.load(chapterId || '', { chapterEventId })
       ]);
       
       if ($authStore.pubkey) {

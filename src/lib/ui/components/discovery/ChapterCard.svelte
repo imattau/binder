@@ -18,6 +18,7 @@
   });
   const chapterD = $derived(() => e.tags.find(t => t[0] === 'd')?.[1] || '');
   const chapterCoord = $derived(() => `30023:${e.pubkey}:${chapterD}`);
+  const chapterEventId = $derived(() => e.id);
   let stats = $state<SocialCounts>({ likes: 0, comments: 0, boosts: 0, zaps: 0 });
   let statsLoading = $state(true);
   const addedAt = $derived(() => new Date(e.created_at * 1000));
@@ -43,7 +44,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div 
   class="group block rounded-lg border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:border-violet-100 hover:shadow-md cursor-pointer"
-  onclick={() => goto(`/read/${bookCoord()}/${chapterCoord()}`)}
+onclick={() => goto(`/read/${bookCoord()}/${chapterCoord()}?chapterEventId=${encodeURIComponent(chapterEventId())}`)}
 >
   <ReasonLine reason={item.reason} />
   
