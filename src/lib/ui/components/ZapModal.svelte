@@ -81,7 +81,8 @@
         kind,
         d
       },
-      message
+      message,
+      zapDetails.lnurl
     );
 
     if (!zapRequestRes.ok) {

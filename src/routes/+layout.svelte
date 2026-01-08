@@ -6,6 +6,7 @@
   import { settingsService } from '$lib/services/settingsService';
   import { profileService } from '$lib/services/profileService';
   import { themeStore } from '$lib/state/themeStore';
+  import { pageConfigStore } from '$lib/state/pageConfigStore';
   import ZapModal from '$lib/ui/components/ZapModal.svelte';
   import { zapModalStore } from '$lib/state/zapModalStore';
 
@@ -24,6 +25,8 @@
       if (session?.pubkey) {
           // Sync relays in background on load
           settingsService.syncRelaysFromNetwork(session.pubkey);
+          pageConfigStore.loadFromNetwork(session.pubkey);
+          
           if (!session.profile?.name && !session.profile?.picture) {
               const profileRes = await profileService.loadProfile(session.pubkey);
               if (profileRes.ok) {

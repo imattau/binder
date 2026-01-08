@@ -91,6 +91,7 @@ export const publisherService = {
             const bookTags = [
                 ['d', book.d],
                 ['title', book.title],
+                ['t', 'binder-book'], // Marker for Binder compatibility
             ];
             if (book.summary) bookTags.push(['summary', book.summary]);
             chapters.forEach((c, index) => {

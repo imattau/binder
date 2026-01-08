@@ -1,31 +1,30 @@
-import { subscriptions } from '$lib/infra/nostr/subscriptions';
 import { ok, fail, type Result } from '$lib/domain/result';
 import type { AuthorProfile } from '$lib/domain/types';
+import { ndk, connectNDK } from '$lib/infra/nostr/ndk';
 
 export const profileService = {
     async loadProfile(pubkey: string): Promise<Result<Partial<AuthorProfile>>> {
-        const res = await subscriptions.fetchMetadata([pubkey]);
-        if (!res.ok) {
-            return fail(res.error);
-        }
-
-        const event = res.value[0];
-        if (!event) {
-            return ok({});
-        }
-
         try {
-            const data = JSON.parse(event.content || '{}');
+            // Ensure NDK is connected
+            await connectNDK();
+            
+            const user = ndk.getUser({ pubkey });
+            await user.fetchProfile();
+
+            if (!user.profile) {
+                return ok({});
+            }
+
             const profile: Partial<AuthorProfile> = {
-                name: data.name,
-                picture: data.picture,
-                displayName: data.displayName,
-                about: data.about,
-                nip05: data.nip05
+                name: user.profile.name,
+                picture: user.profile.image,
+                displayName: user.profile.displayName,
+                about: user.profile.about,
+                nip05: user.profile.nip05
             };
             return ok(profile);
         } catch (e: any) {
-            return fail({ message: 'Failed to parse profile metadata', cause: e });
+            return fail({ message: 'Failed to load profile via NDK', cause: e });
         }
     }
 };

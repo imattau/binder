@@ -1,6 +1,6 @@
 import { pool, getActiveRelays, fetchEvents } from '$lib/infra/nostr/pool';
 import { ok, fail, type Result } from '$lib/domain/result';
-import type { NostrEvent, EventTemplate } from 'nostr-tools';
+import { type NostrEvent, type EventTemplate, nip57 } from 'nostr-tools';
 import type { ZapDetails } from '$lib/domain/types';
 import { signerService } from './signerService';
 
@@ -13,6 +13,7 @@ interface LnurlpResponse {
     nostrPubkey?: string;
     nostrCommentAllowed?: number;
     metadata?: string;
+    lnurl?: string;
 }
 
 // Add WebLN type definition
@@ -89,7 +90,8 @@ function ensureLnurlResponse(data: LnurlpResponse): Result<ZapDetails> {
         allowsNostr: data.allowsNostr,
         nostrPubkey: data.nostrPubkey,
         metadata: data.metadata,
-        commentAllowed: data.nostrCommentAllowed
+        commentAllowed: data.nostrCommentAllowed,
+        lnurl: data.lnurl
     });
 }
 
@@ -111,7 +113,10 @@ export const zapService = {
         const lnurlRes = await fetchJson(lnurlUrl);
         if (!lnurlRes.ok) return fail({ message: 'Failed to resolve LNURL', cause: lnurlRes.error });
 
-        return ensureLnurlResponse(lnurlRes.value as LnurlpResponse);
+        // Temporarily passing the URL itself as we don't have a bech32 encoder handy. 
+        // Ideally this should be bech32 encoded.
+        const responseData = { ...lnurlRes.value, lnurl: lnurlUrl };
+        return ensureLnurlResponse(responseData as LnurlpResponse & { lnurl: string });
     },
 
     async makeZapRequestEvent(
@@ -119,33 +124,40 @@ export const zapService = {
         amountSats: number,
         relays: string[],
         targetEvent?: { id?: string; kind?: number; pubkey?: string; d?: string },
-        comment?: string
+        comment?: string,
+        lnurl?: string
     ): Promise<Result<NostrEvent>> {
         const amountMillisats = amountSats * 1000;
-        const tags: string[][] = [
-            ['relays', ...relays],
-            ['amount', amountMillisats.toString()],
-            ['p', recipientPubkey]
-        ];
-
-        if (targetEvent) {
-            if (targetEvent.id) {
-                tags.push(['e', targetEvent.id]);
-            }
-            if (targetEvent.kind && targetEvent.pubkey && targetEvent.d) {
-                tags.push(['a', `${targetEvent.kind}:${targetEvent.pubkey}:${targetEvent.d}`]);
-            }
-        }
         
-        // Per NIP-57, if comment is present, add it.
-        // But note: 'content' of the event is the comment.
-        
-        const template: EventTemplate = {
-            kind: 9734,
-            created_at: Math.floor(Date.now() / 1000),
-            tags,
-            content: comment || ''
+        let params: any = {
+            amount: amountMillisats,
+            comment,
+            relays
         };
+
+        if (targetEvent && targetEvent.id) {
+            // Construct a minimal event object for makeZapRequest
+            // It needs id, pubkey, kind, and tags (for d-tag check)
+            params.event = {
+                id: targetEvent.id,
+                pubkey: targetEvent.pubkey || recipientPubkey, // Fallback, though event should have pubkey
+                kind: targetEvent.kind || 1, // Default to 1 (text note) if not specified
+                tags: targetEvent.d ? [['d', targetEvent.d]] : []
+            };
+        } else {
+            params.pubkey = recipientPubkey;
+        }
+
+        let template: EventTemplate;
+        try {
+            template = nip57.makeZapRequest(params);
+        } catch (e: any) {
+            return fail({ message: 'Failed to create zap request', cause: e });
+        }
+
+        if (lnurl) {
+            template.tags.push(['lnurl', lnurl]);
+        }
 
         return signerService.signEvent(template);
     },

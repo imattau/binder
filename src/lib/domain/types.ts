@@ -172,4 +172,5 @@ export interface ZapDetails {
     nostrPubkey?: string;
     metadata?: string;
     commentAllowed?: number;
+    lnurl?: string;
 }

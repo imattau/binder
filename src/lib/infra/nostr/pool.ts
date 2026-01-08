@@ -1,7 +1,8 @@
-import { SimplePool, type Filter, type NostrEvent } from 'nostr-tools';
+import { SimplePool, type Filter, type NostrEvent, verifyEvent } from 'nostr-tools';
 import { relaySettingsRepo } from '$lib/infra/storage/relaySettingsRepo';
 
 export const pool = new SimplePool();
+pool.verifyEvent = verifyEvent;
 
 export const DEFAULT_RELAYS = [
     'wss://relay.damus.io',

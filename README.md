@@ -165,6 +165,5 @@ For DO App Platform containers, point the service at the same Dockerfile (or you
 
 ## Troubleshooting
 
-- **`npm run check` fails** – there are known type-level issues in `src/lib/infra/nostr/ndk.ts` (`nip05Fetch`) and the `discover` page's `Icon` usage; fixing those eliminates the current errors.
 - **Media uploads blocked** – configure a Blossom/compliant media server or rely on inline data URLs; monitor console for CORS errors.
 - **Relay rejections (“too many concurrent REQs”)** – rely on `socialCountService`’s throttling or choose relays with higher concurrency.

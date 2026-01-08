@@ -3,7 +3,7 @@ binder.example.com {
   reverse_proxy localhost:4173
   log {
     output file /var/log/caddy/binder_access.log
-    format single_field common_log
+    format json
   }
   tls admin@binder.example.com
 }

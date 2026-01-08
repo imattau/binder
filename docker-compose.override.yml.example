@@ -1,0 +1,5 @@
+version: '3.9'
+services:
+  # Disable the bundled Caddy service since you have one on the host
+  caddy:
+    profiles: ["donotstart"]

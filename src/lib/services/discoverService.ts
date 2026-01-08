@@ -9,8 +9,12 @@ import type { NostrEvent } from 'nostr-tools';
 // Helper to distinguish Binder Books (TOCs) from generic NIP-51 lists
 function isBook(event: NostrEvent): boolean {
     if (event.kind !== 30003) return false;
+
+    // Primary Signal: Specific Binder tag
+    const isBinderNative = event.tags.some(t => t[0] === 't' && t[1] === 'binder-book');
+    
     const hasTitle = event.tags.some(t => t[0] === 'title');
-    if (!hasTitle) return false;
+    if (!hasTitle && !isBinderNative) return false;
 
     // Strict Check: Must contain at least one Chapter (30023) by the SAME AUTHOR
     // This aligns with the reader's security policy and ensures we don't show empty "Reading Lists".
@@ -23,7 +27,7 @@ function isBook(event: NostrEvent): boolean {
         return kind === '30023' && pubkey === event.pubkey;
     });
     
-    return hasValidChapter;
+    return hasValidChapter || isBinderNative;
 }
 
 export const discoverService = {

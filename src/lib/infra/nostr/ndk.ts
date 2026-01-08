@@ -1,4 +1,5 @@
 import NDK from '@nostr-dev-kit/ndk';
+import { getActiveRelays } from './pool';
 
 const HEX64_DOMAIN = /^[0-9a-f]{64}$/i;
 
@@ -27,14 +28,18 @@ async function nip05Fetch(input: string | URL | Request, init?: RequestInit) {
 	return fetch(input, init);
 }
 
-export const ndk = new NDK({
-	explicitRelayUrls: ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://nos.lol']
-});
+export const ndk = new NDK();
 
 ndk.httpFetch = nip05Fetch;
 
 export async function connectNDK() {
     try {
+        const relays = await getActiveRelays();
+        relays.forEach(r => {
+            if (!ndk.pool.relays.has(r)) {
+                ndk.addExplicitRelay(r);
+            }
+        });
         await ndk.connect();
     } catch (e) {
         console.error('Failed to connect NDK', e);
