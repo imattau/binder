@@ -72,8 +72,6 @@ export async function initiateNostrConnectSession(options: NostrConnectSessionOp
     clientName: 'Binder'
   });
 
-  await handshakeNdk.connect();
-
   const localKey = options.localKey ?? bytesToHex(generateSecretKey());
   const localSigner = new NDKPrivateKeySigner(localKey);
   const localUser = await localSigner.user();
@@ -133,7 +131,10 @@ export async function initiateNostrConnectSession(options: NostrConnectSessionOp
           const user = await Promise.race([
             signer.user(),
             new Promise<NDKUser>((_, rejectRpc) =>
-              setTimeout(() => rejectRpc(new Error('RPC verification timeout')), options.rpcTimeoutMs ?? 10000)
+              setTimeout(
+                () => rejectRpc(new Error('RPC verification timeout')),
+                options.rpcTimeoutMs ?? 60000
+              )
             )
           ]);
 
