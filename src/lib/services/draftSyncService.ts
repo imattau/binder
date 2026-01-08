@@ -70,7 +70,19 @@ async function publishPayload(payload: SnapshotPayload): Promise<Result<void>> {
     const keyRes = await getScopedSyncKey(SYNC_SCOPE);
     if (!keyRes.ok) return fail(keyRes.error);
     const conversationKey = getConversationKey(keyRes.value);
-    const encrypted = nip44.encrypt(JSON.stringify(payload), conversationKey);
+    let encrypted: string;
+    try {
+        encrypted = nip44.encrypt(JSON.stringify(payload), conversationKey);
+    } catch (e: any) {
+        console.error('Draft sync encryption failed', e);
+        return fail({
+            message:
+                e?.message?.includes('invalid plaintext size')
+                    ? 'Draft snapshot too large to encrypt'
+                    : 'Failed to encrypt draft snapshot',
+            cause: e
+        });
+    }
 
     const template: EventTemplate = {
         kind: SYNC_KIND,
