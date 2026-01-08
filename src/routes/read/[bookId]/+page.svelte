@@ -120,7 +120,23 @@
   }
 
   async function handleZap() {
-      alert('Zap flow would start here');
+      const book = $currentBookStore.book;
+      if (!book) return;
+
+      const parts = book.id.split(':');
+      if (parts.length < 2) {
+          alert('Zap is only supported for published books.');
+          return;
+      }
+      const pubkey = parts[1];
+      const res = await socialStore.requestZap(pubkey);
+      if (res.ok) {
+          if (typeof window !== 'undefined') {
+              window.open(`lightning:${res.value}`, '_blank');
+          }
+      } else {
+          alert(res.error.message);
+      }
   }
 
 </script>
