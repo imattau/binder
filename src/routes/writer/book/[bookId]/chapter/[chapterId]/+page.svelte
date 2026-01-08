@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import { beforeNavigate } from '$app/navigation';
   import { currentChapterStore } from '$lib/state/currentChapterStore';
   import { editorUiStore } from '$lib/state/editorUiStore';
   import { authStore } from '$lib/state/authStore';
@@ -17,16 +18,18 @@
   const bookId = $page.params.bookId || '';
   const chapterId = $page.params.chapterId || '';
   
-  let isEditingTitle = false;
-  let editTitle = '';
+  let isEditingTitle = $state(false);
+  let editTitle = $state('');
   let autoSaveTimer: ReturnType<typeof setTimeout>;
-  let codeMirrorRef: {
+  let codeMirrorRef = $state<{
     wrapSelection?: (prefix: string, suffix?: string, placeholder?: string) => void;
     insertAtLineStart?: (prefix: string) => void;
-  } | null = null;
-  let imageInput: HTMLInputElement | null = null;
-  let isUploadingImage = false;
-  let imageUploadError = '';
+  } | null>(null);
+  let imageInput = $state<HTMLInputElement | null>(null);
+  let isUploadingImage = $state(false);
+  let imageUploadError = $state('');
+
+  let removeBeforeNavigate: (() => void) | null = null;
 
   onMount(() => {
     if (!$authStore.pubkey) {
@@ -36,14 +39,26 @@
     if (chapterId) {
         currentChapterStore.load(chapterId);
     }
+    removeBeforeNavigate = beforeNavigate(() => {
+        void currentChapterStore.save();
+    });
+    window.addEventListener('beforeunload', handleBeforeUnload);
   });
   
+  function handleBeforeUnload(event: BeforeUnloadEvent) {
+      void currentChapterStore.save();
+  }
+
   onDestroy(() => {
       clearTimeout(autoSaveTimer);
       // Final save on exit if dirty
       if ($currentChapterStore.isDirty) {
           currentChapterStore.save();
       }
+      if (removeBeforeNavigate) {
+          removeBeforeNavigate();
+      }
+      window.removeEventListener('beforeunload', handleBeforeUnload);
   });
 
   function handleContentChange(newContent: string) {
