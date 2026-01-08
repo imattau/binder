@@ -76,7 +76,7 @@
        const res = await socialStore.requestZap(authorPubkey);
        if (res.ok) {
            if (typeof window !== 'undefined') {
-               window.open(res.value, '_blank');
+               window.open(`lightning:${res.value}`, '_blank');
            }
        } else {
            alert(res.error.message);
