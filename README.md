@@ -148,6 +148,14 @@ docker build -t binder:latest .
 docker run --env BINDER_PORT=4173 --env RELAY_LIST=\"wss://relay.damus.io\" -p 4173:4173 binder:latest
 ```
 
+If your deployment needs a reverse proxy or TLS termination, run the provided `docker-compose.yml` which brings up Binder plus a Caddy proxy as a single stack:
+
+```bash
+docker-compose up -d
+```
+
+Adjust `deploy/Caddyfile` for your domain (or supply your own config) and mount any persistent volumes you need for your database or media cache. Add extra services to the compose file (e.g., PostgreSQL, Redis) by declaring them in the YAML and linking to them via environment variables; Binder itself only interacts with HTTP-based relays/media hosts, so third-party services can sit alongside it in the stack without special networking.
+
 For DO App Platform containers, point the service at the same Dockerfile (or your own Docker image) and specify the build/publish/pull settings. The App Platform will handle certificates when you attach a domain, and any provided ENV vars (`RELAY_LIST`, `MEDIA_SERVER`, `BINDER_PORT`, etc.) are injected automatically. For VPS-based Docker hosts, pair the container with Caddy/nginx using the examples in `deploy/`, or run Docker behind DO’s load balancer.
 
 ## Contributing

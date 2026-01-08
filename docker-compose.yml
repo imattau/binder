@@ -1,0 +1,31 @@
+version: '3.9'
+services:
+  binder:
+    build: .
+    ports:
+      - "4173:4173"
+    environment:
+      NODE_ENV: production
+      BINDER_PORT: 4173
+      RELAY_LIST: "wss://relay.damus.io,wss://relay.primal.net"
+      MEDIA_SERVER: https://nostr.build/upload
+    restart: unless-stopped
+    volumes:
+      - binder-data:/app
+
+  caddy:
+    image: caddy:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - binder
+
+volumes:
+  binder-data:
+  caddy_data:
+  caddy_config:
