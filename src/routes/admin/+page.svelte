@@ -388,4 +388,39 @@ import { pageConfigStore } from '$lib/state/pageConfigStore';
       </div>
     </Card>
   </CollapsibleSection>
+
+  <CollapsibleSection
+    title="Content Settings"
+    description="Customize how content is displayed across Binder."
+  >
+    <Card>
+      <div class="space-y-4">
+        <div class="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-3">
+          <div>
+            <p class="font-semibold text-slate-900">Show Articles as Chapters</p>
+            <p class="text-xs text-slate-500">
+              Treat standard long-form articles (Kind 30023) as stand-alone chapters without a book in the Discover feed.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={pageConfig.showArticlesAsChapters}
+            aria-label="Toggle showing articles as chapters"
+            class={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${pageConfig.showArticlesAsChapters ? 'bg-violet-600' : 'bg-slate-200'}`}
+            onclick={() => {
+              const updated = { ...pageConfig, showArticlesAsChapters: !pageConfig.showArticlesAsChapters };
+              pageConfig = updated;
+              pageConfigService.saveConfig(updated);
+              pageConfigStore.setConfig(updated);
+            }}
+          >
+            <span
+              class={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${pageConfig.showArticlesAsChapters ? 'translate-x-6' : 'translate-x-1'}`}
+            ></span>
+          </button>
+        </div>
+      </div>
+    </Card>
+  </CollapsibleSection>
 </div>

@@ -6,8 +6,11 @@ import { ok, fail, type Result } from '$lib/domain/result';
 import type { FeedItem, GroupedFeedItem, AuthorProfile } from '$lib/domain/types';
 import type { NostrEvent } from 'nostr-tools';
 
+import { pageConfigService } from './pageConfigService';
+
 // Helper to distinguish Binder Books (TOCs) from generic NIP-51 lists
 function isBook(event: NostrEvent): boolean {
+    if (event.kind === 30023) return true; // Articles are valid if we are fetching them
     if (event.kind !== 30003) return false;
 
     // Primary Signal: Specific Binder tag
@@ -149,18 +152,24 @@ export const discoverService = {
     },
 
     async getGlobalBooksFeed(): Promise<Result<FeedItem[]>> {
+        const config = pageConfigService.getConfig();
+        const kinds = [30003];
+        if (config.showArticlesAsChapters) {
+            kinds.push(30023);
+        }
+
         const res = await subscriptions.fetchFeed({
-            kinds: [30003],
+            kinds,
             limit: 20
         });
 
         if (!res.ok) return fail(res.error);
 
         const items: FeedItem[] = res.value
-            .filter(isBook)
+            .filter(e => isBook(e))
             .map(e => ({
                 event: e,
-                type: 'book',
+                type: e.kind === 30003 ? 'book' : 'chapter',
                 reason: 'Latest on Binder'
             }));
 

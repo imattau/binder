@@ -12,7 +12,7 @@ import { onMount } from 'svelte';
   const title = $derived(e.tags.find(t => t[0] === 'title')?.[1] || 'Untitled Book');
   const summary = $derived(e.tags.find(t => t[0] === 'summary')?.[1]);
   const addedAt = $derived(new Date(e.created_at * 1000));
-  const coverUrl = $derived(e.tags.find(t => t[0] === 'cover')?.[1]);
+  const coverUrl = $derived(e.tags.find(t => t[0] === 'cover' || t[0] === 'image')?.[1]);
   
   // Construct coordinate: kind:pubkey:d
   const d = $derived(e.tags.find(t => t[0] === 'd')?.[1] || '');

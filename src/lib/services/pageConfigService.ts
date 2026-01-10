@@ -7,6 +7,7 @@ import type { EventTemplate } from 'nostr-tools';
 export interface PageConfig {
   coverImage?: string;
   iconImage?: string;
+  showArticlesAsChapters?: boolean;
   lastUpdated?: number;
 }
 

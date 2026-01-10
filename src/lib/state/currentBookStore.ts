@@ -29,6 +29,50 @@ function createCurrentBookStore() {
                 const parts = bookId.split(':');
                 if (parts.length >= 3) {
                     const [kind, pubkey, d] = parts;
+
+                    // Handle standard Long-form Articles (30023) as Books
+                    if (kind === '30023') {
+                        const res = await contentCacheService.getChapter(pubkey, d, 'prefer-offline');
+                        if (res.ok) {
+                            const event = res.value;
+                            const title = event.tags.find(t => t[0] === 'title')?.[1] || 'Untitled Article';
+                            const summary = event.tags.find(t => t[0] === 'summary')?.[1];
+                            const cover = event.tags.find(t => t[0] === 'image' || t[0] === 'cover')?.[1];
+                            const topics = event.tags.filter(t => t[0] === 't').map(t => t[1]).filter((value): value is string => Boolean(value));
+                            
+                            const chapterDraft: LocalChapterDraft = {
+                                id: bookId,
+                                d: d,
+                                bookId: bookId,
+                                title: title,
+                                contentMd: event.content,
+                                status: 'ready',
+                                createdAt: event.created_at,
+                                updatedAt: event.created_at
+                            };
+
+                            set({
+                                book: {
+                                    id: bookId,
+                                    d,
+                                    title,
+                                    summary,
+                                    cover,
+                                    tags: [],
+                                    topics,
+                                    coAuthors: [],
+                                    chapterOrder: [bookId],
+                                    createdAt: event.created_at,
+                                    updatedAt: event.created_at,
+                                    publishedHash: undefined
+                                },
+                                chapters: [chapterDraft],
+                                loading: false
+                            });
+                            return;
+                        }
+                    }
+
                     const res = await contentCacheService.getBook(pubkey, d, 'prefer-offline');
                     
                     if (res.ok) {
