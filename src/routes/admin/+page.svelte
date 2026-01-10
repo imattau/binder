@@ -407,7 +407,7 @@ import { pageConfigStore } from '$lib/state/pageConfigStore';
             role="switch"
             aria-checked={pageConfig.showArticlesAsChapters}
             aria-label="Toggle showing articles as chapters"
-            class={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${pageConfig.showArticlesAsChapters ? 'bg-violet-600' : 'bg-slate-200'}`}
+            class={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${pageConfig.showArticlesAsChapters ? 'bg-violet-600' : 'bg-slate-200 dark:!bg-slate-600'}`}
             onclick={() => {
               const updated = { ...pageConfig, showArticlesAsChapters: !pageConfig.showArticlesAsChapters };
               pageConfig = updated;
