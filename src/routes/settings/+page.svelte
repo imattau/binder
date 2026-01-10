@@ -144,20 +144,22 @@
   <CollapsibleSection title="Relays" description="Enable or remove relay endpoints that Binder should use.">
     <Card>
       <div class="space-y-4">
-        {#each $settingsStore as relay}
-          <div class="flex items-center justify-between p-3 bg-slate-50 rounded-md">
-            <div class="flex items-center gap-3 overflow-hidden">
-                <input 
-                    type="checkbox" 
-                    checked={relay.enabled} 
-                    onchange={() => toggleRelay(relay.url)}
-                    class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-slate-300 rounded"
-                />
-                <span class="text-sm font-mono text-slate-700 truncate">{relay.url}</span>
+        <div class="max-h-80 overflow-y-auto space-y-2 pr-1">
+          {#each $settingsStore as relay}
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-md">
+              <div class="flex items-center gap-3 overflow-hidden">
+                  <input 
+                      type="checkbox" 
+                      checked={relay.enabled} 
+                      onchange={() => toggleRelay(relay.url)}
+                      class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-slate-300 rounded"
+                  />
+                  <span class="text-sm font-mono text-slate-700 truncate">{relay.url}</span>
+              </div>
+              <Button variant="danger" onclick={() => removeRelay(relay.url)}>Remove</Button>
             </div>
-            <Button variant="danger" onclick={() => removeRelay(relay.url)}>Remove</Button>
-          </div>
-        {/each}
+          {/each}
+        </div>
 
         <div class="flex gap-2 mt-6 pt-4 border-t border-slate-200">
           <div class="flex-grow">
