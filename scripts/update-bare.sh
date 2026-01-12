@@ -36,8 +36,8 @@ chown -R $USER:$USER $APP_DIR
 echo -e "${YELLOW}Rebuilding application...${NC}"
 cd $APP_DIR
 # Run install and build as the service user
-sudo -u $USER npm install
-sudo -u $USER npm run build
+sudo -u $USER HOME=$APP_DIR npm install
+sudo -u $USER HOME=$APP_DIR npm run build
 
 echo -e "${YELLOW}Restarting service...${NC}"
 systemctl restart binder

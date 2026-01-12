@@ -53,8 +53,8 @@ cd $APP_DIR
 # Install serve globally for production serving
 npm install -g serve
 # Install deps and build as the binder user to ensure permissions
-sudo -u $USER npm install
-sudo -u $USER npm run build
+sudo -u $USER HOME=$APP_DIR npm install
+sudo -u $USER HOME=$APP_DIR npm run build
 
 # 4. Create Systemd Service
 echo -e "${YELLOW}Creating systemd service...${NC}"
