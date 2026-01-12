@@ -10,6 +10,8 @@ services:
       RELAY_LIST: "wss://relay.damus.io,wss://relay.primal.net"
       MEDIA_SERVER: https://nostr.build/upload
     restart: unless-stopped
+    depends_on:
+      - tor
 
   caddy:
     image: caddy:latest
@@ -22,7 +24,49 @@ services:
       - caddy_config:/config
     depends_on:
       - binder
+      - sidecar
+
+  # Shared Tor Service
+  # Provides SOCKS5 proxy on port 9050
+  # Hosts Hidden Services
+  tor:
+    image: osminogin/tor-simple:latest
+    container_name: tor
+    restart: unless-stopped
+    environment:
+      # SOCKS Proxy for other containers to use
+      - TOR_SOCKS_PORT=9050
+      # Control Port for apps that need to manage Tor (like ncc-sidecar)
+      - TOR_CONTROL_PORT=9051
+      - TOR_CONTROL_PASSWORD=ncc-password
+      # Hidden Service 1: Maps external port 80 to Caddy's port 80
+      - TOR_HIDDEN_SERVICE_1_PORT_80=caddy:80
+    volumes:
+      - tor_keys:/var/lib/tor/hidden_service/
+
+  # NCC Sidecar
+  sidecar:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.sidecar
+    restart: unless-stopped
+    environment:
+      # Configure Sidecar to use the Tor proxy
+      - ALL_PROXY=socks5://tor:9050
+      - HTTPS_PROXY=socks5://tor:9050
+      - NO_PROXY=localhost,127.0.0.1,caddy
+      # Tor Control Config
+      - TOR_CONTROL_HOST=tor
+      - TOR_CONTROL_PORT=9051
+      - TOR_CONTROL_PASSWORD=ncc-password
+      - PORT=8080
+    volumes:
+      - sidecar_data:/app/data
+    depends_on:
+      - tor
 
 volumes:
   caddy_data:
   caddy_config:
+  tor_keys:
+  sidecar_data:
