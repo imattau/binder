@@ -19,13 +19,13 @@ if ! git diff --quiet deploy/Caddyfile; then
     
     # Extract Domain (first non-whitespace string of first line)
     # This handles both "example.com {" and "http://1.2.3.4 {"
-    CURRENT_DOMAIN=$(head -n 1 deploy/Caddyfile | awk '{print $1}')
+    CURRENT_DOMAIN=$(head -n 1 deploy/Caddyfile | awk '{print $1}' | tr -d '\n')
     
     # Extract Email (second string of 'tls' directive)
-    CURRENT_EMAIL=$(grep "tls " deploy/Caddyfile | awk '{print $2}')
+    CURRENT_EMAIL=$(grep "tls " deploy/Caddyfile | awk '{print $2}' | tr -d '\n')
     
-    echo "  - Domain: $CURRENT_DOMAIN"
-    echo "  - Email:  $CURRENT_EMAIL"
+    echo "  - Domain: '$CURRENT_DOMAIN'"
+    echo "  - Email:  '$CURRENT_EMAIL'"
     
     # Reset file to match git (discarding local changes temporarily)
     # This ensures git pull doesn't fail due to conflicts
@@ -46,12 +46,12 @@ if [ "$NEEDS_CONFIG" = true ]; then
     
     # Apply Domain
     if [ -n "$CURRENT_DOMAIN" ]; then
-        sed -i "s|binder.example.com|$CURRENT_DOMAIN|g" deploy/Caddyfile
+        sed -i "s~binder.example.com~$CURRENT_DOMAIN~g" deploy/Caddyfile
     fi
     
     # Apply Email
     if [ -n "$CURRENT_EMAIL" ]; then
-        sed -i "s|admin@binder.example.com|$CURRENT_EMAIL|g" deploy/Caddyfile
+        sed -i "s~admin@binder.example.com~$CURRENT_EMAIL~g" deploy/Caddyfile
     fi
 fi
 
