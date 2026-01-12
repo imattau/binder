@@ -4,14 +4,15 @@ binder.example.com {
   # Main App
   reverse_proxy binder:4173
 
-  # NCC Sidecar
-  handle_path /sidecar/* {
-    reverse_proxy sidecar:8080
-  }
-
   log {
     output file /var/log/caddy/binder_access.log
     format json
   }
+  tls admin@binder.example.com
+}
+
+binder.example.com:8080 {
+  encode gzip
+  reverse_proxy sidecar:8080
   tls admin@binder.example.com
 }
