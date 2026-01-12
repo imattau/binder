@@ -1,4 +1,4 @@
-binder.example.com {
+:80 {
   encode gzip
   
   # Main App
@@ -8,11 +8,9 @@ binder.example.com {
     output file /var/log/caddy/binder_access.log
     format json
   }
-  tls admin@binder.example.com
 }
 
-binder.example.com:8080 {
+:8080 {
   encode gzip
   reverse_proxy sidecar:8080
-  tls admin@binder.example.com
 }
