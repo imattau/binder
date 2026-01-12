@@ -162,6 +162,16 @@ The script will:
 4.  Configure Caddy automatically.
 5.  Build and start the containers.
 
+**Deploying Updates**
+
+When you push new changes to your repository, run this command on your VPS to deploy them:
+
+```bash
+./scripts/update.sh
+```
+
+This script will pull the latest code and rebuild the Docker containers automatically.
+
 **Manual Docker Usage**
 
 If you prefer to manage Docker manually:
