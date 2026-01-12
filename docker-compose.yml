@@ -60,8 +60,6 @@ services:
       - TOR_CONTROL_HOST=tor
       - TOR_CONTROL_PORT=9051
       - TOR_CONTROL_PASSWORD=ncc-password
-      - PORT=8080
-      - HOST=0.0.0.0
     volumes:
       - sidecar_data:/app/data
     depends_on:
