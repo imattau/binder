@@ -138,25 +138,56 @@ Binder works with DigitalOcean droplets or the App Platform thanks to standard N
 
 In both DO scenarios you can automate future releases by re-running `npm run build` after pulling new commits and restarting the systemd service or App deployment.
 
-### 6. Deploying via Docker
+### 6. Deploying via Docker (Recommended)
 
-Binder includes a `Dockerfile` that builds the site (`npm install`, `npm run build`) and runs the production bundle with `npm run preview -- --host 0.0.0.0 --port ${PORT:-4173}`. The image exposes `PORT` (default 4173) and inherits environment variables for relays/media servers/signers via the usual npm runtime. Use the Dockerfile locally or on DigitalOcean’s App Platform, Docker Hub, or any container host:
+Binder includes an automated deployment script that handles Docker installation, configuration, and launching the full stack with Caddy (SSL).
+
+**Automated Deployment (Fresh VPS)**
+
+Run these commands on your fresh Ubuntu/Debian VPS:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-username/binder.git
+cd binder
+
+# 2. Run the deployment script
+./scripts/deploy-docker.sh
+```
+
+The script will:
+1.  Install Docker if it is missing.
+2.  Enable Docker as a system service (survives reboots).
+3.  Prompt you for your domain name and email (for SSL).
+4.  Configure Caddy automatically.
+5.  Build and start the containers.
+
+**Manual Docker Usage**
+
+If you prefer to manage Docker manually:
 
 ```bash
 docker build -t binder:latest .
-# optional: push to a registry or App Platform project
-docker run --env BINDER_PORT=4173 --env RELAY_LIST=\"wss://relay.damus.io\" -p 4173:4173 binder:latest
+docker run -p 4173:4173 binder:latest
 ```
 
-If your deployment needs a reverse proxy or TLS termination, run the provided `docker-compose.yml` which brings up Binder plus a Caddy proxy as a single stack:
+**Production Stack (Docker Compose)**
 
-```bash
-docker-compose up -d
-```
+For a complete production setup with automatic HTTPS and reverse proxying:
 
-Adjust `deploy/Caddyfile` for your domain (or supply your own config) and mount any persistent volumes you need for your database or media cache. Add extra services to the compose file (e.g., PostgreSQL, Redis) by declaring them in the YAML and linking to them via environment variables; Binder itself only interacts with HTTP-based relays/media hosts, so third-party services can sit alongside it in the stack without special networking.
+1.  **Configure Domain**: Edit `deploy/Caddyfile` to replace `binder.example.com` and `admin@binder.example.com` with your actual domain and email.
+2.  **Run Stack**:
+    ```bash
+    docker-compose up -d
+    ```
 
-For DO App Platform containers, point the service at the same Dockerfile (or your own Docker image) and specify the build/publish/pull settings. The App Platform will handle certificates when you attach a domain, and any provided ENV vars (`RELAY_LIST`, `MEDIA_SERVER`, `BINDER_PORT`, etc.) are injected automatically. For VPS-based Docker hosts, pair the container with Caddy/nginx using the examples in `deploy/`, or run Docker behind DO’s load balancer.
+This stack:
+- Runs Binder on port 4173 (internal).
+- Runs Caddy on ports 80/443 (public).
+- Automatically handles SSL/TLS certificates via Let's Encrypt.
+- Configures proper networking between Caddy and Binder (via the `binder` hostname).
+
+For DigitalOcean App Platform or other container orchestrators, you can point them to the `Dockerfile`. Ensure you set any necessary environment variables like `RELAY_LIST` or `MEDIA_SERVER` in your platform's configuration.
 
 ## Contributing
 

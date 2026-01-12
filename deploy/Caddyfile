@@ -1,6 +1,6 @@
 binder.example.com {
   encode gzip
-  reverse_proxy localhost:4173
+  reverse_proxy binder:4173
   log {
     output file /var/log/caddy/binder_access.log
     format json

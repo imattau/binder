@@ -10,8 +10,6 @@ services:
       RELAY_LIST: "wss://relay.damus.io,wss://relay.primal.net"
       MEDIA_SERVER: https://nostr.build/upload
     restart: unless-stopped
-    volumes:
-      - binder-data:/app
 
   caddy:
     image: caddy:latest
@@ -26,6 +24,5 @@ services:
       - binder
 
 volumes:
-  binder-data:
   caddy_data:
   caddy_config:
