@@ -228,6 +228,18 @@ sudo ./scripts/uninstall-docker.sh
 
 ## Contributing
 
+### Updating Bare Metal Install
+
+To deploy updates to a bare metal installation:
+
+```bash
+sudo ./scripts/update-bare.sh
+```
+
+This will pull the latest code, rebuild the application, and restart the systemd service.
+
+## Troubleshooting
+
 - Follow the existing code style (Svelte + Tailwind). Add tests (or describe manual steps) when touching complex services.
 - Keep `npm run check` clean of your changes before proposing a merge; document any new dependencies in `package.json`.
 
