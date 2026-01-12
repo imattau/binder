@@ -22,10 +22,10 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# 1. Install Node.js 20
+# 1. Install Node.js 22
 if ! command -v node &> /dev/null; then
-    echo -e "${YELLOW}Installing Node.js 20...${NC}"
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    echo -e "${YELLOW}Installing Node.js 22...${NC}"
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
     apt-get install -y nodejs build-essential
 else
     echo -e "${GREEN}Node.js is already installed.$(node -v)${NC}"
