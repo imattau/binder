@@ -50,6 +50,10 @@ chown -R $USER:$USER $APP_DIR
 # 3. Build Application
 echo -e "${YELLOW}Building Binder...${NC}"
 cd $APP_DIR
+
+# Clean previous installs to prevent corruption
+rm -rf node_modules package-lock.json
+
 # Install serve globally for production serving
 npm install -g serve
 # Install deps and build as the binder user to ensure permissions
