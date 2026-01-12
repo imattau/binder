@@ -1,8 +1,7 @@
 FROM node:20-alpine
-WORKDIR /app
+WORKDIR /usr/local/lib/node_modules/ncc-sidecar
 RUN npm install -g ncc-sidecar
 EXPOSE 8080
 ENV HOST=0.0.0.0
 ENV PORT=8080
-ENV VITE_PORT=8080
-CMD ["sh", "-c", "ls -R /usr/local/lib/node_modules/ncc-sidecar && tail -f /dev/null"]
+CMD ["node", "src/index.js"]
