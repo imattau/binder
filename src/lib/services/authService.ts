@@ -105,6 +105,8 @@ export const authService = {
 
     logout() {
         authStore.logout();
+        ndk.signer = undefined;
+        ndk.activeUser = undefined;
         writerBooksStore.reset();
         currentBookStore.reset();
         currentChapterStore.reset();
