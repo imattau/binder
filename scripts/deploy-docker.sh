@@ -17,22 +17,33 @@ DOMAIN=$1
 EMAIL=$2
 
 if [ -z "$DOMAIN" ]; then
-    echo -e "${YELLOW}Enter the domain name for this instance (e.g., binder.example.com):${NC}"
+    echo -e "${YELLOW}Enter the domain name OR IP address for this instance (e.g. binder.com or 192.168.1.5):${NC}"
     read -r DOMAIN
 fi
 
-if [ -z "$EMAIL" ]; then
-    echo -e "${YELLOW}Enter the admin email for SSL certificates (e.g., admin@example.com):${NC}"
-    read -r EMAIL
+# Detect if input is an IP address (basic regex)
+if [[ $DOMAIN =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    IS_IP=true
+    echo -e "${YELLOW}IP address detected. Configuring for HTTP only (no automatic SSL).${NC}"
+    # For IPs, we don't need an email for Let's Encrypt
+    EMAIL="admin@localhost" 
+else
+    IS_IP=false
+    if [ -z "$EMAIL" ]; then
+        echo -e "${YELLOW}Enter the admin email for SSL certificates (e.g. admin@example.com):${NC}"
+        read -r EMAIL
+    fi
 fi
 
-if [ -z "$DOMAIN" ] || [ -z "$EMAIL" ]; then
-    echo -e "${RED}Error: Domain and Email are required.${NC}"
+if [ -z "$DOMAIN" ]; then
+    echo -e "${RED}Error: Domain/IP is required.${NC}"
     exit 1
 fi
 
-echo -e "Target Domain: ${GREEN}$DOMAIN${NC}"
-echo -e "Admin Email:   ${GREEN}$EMAIL${NC}"
+echo -e "Target Address: ${GREEN}$DOMAIN${NC}"
+if [ "$IS_IP" = false ]; then
+    echo -e "Admin Email:    ${GREEN}$EMAIL${NC}"
+fi
 echo "-----------------------------------"
 
 # 1. Install Docker if missing
@@ -64,7 +75,15 @@ fi
 
 # Replace placeholders
 # We use | as delimiter to avoid issues with slashes in emails/domains if any (though unlikely)
-sed -i "s|binder.example.com|$DOMAIN|g" deploy/Caddyfile
+
+if [ "$IS_IP" = true ]; then
+    # Force HTTP for IP addresses
+    sed -i "s|binder.example.com|http://$DOMAIN|g" deploy/Caddyfile
+else
+    # Standard Domain config
+    sed -i "s|binder.example.com|$DOMAIN|g" deploy/Caddyfile
+fi
+
 sed -i "s|admin@binder.example.com|$EMAIL|g" deploy/Caddyfile
 
 echo -e "${GREEN}Configuration updated.${NC}"
@@ -83,5 +102,11 @@ else
 fi
 
 echo -e "${GREEN}=== Deployment Complete! ===${NC}"
-echo -e "Your Binder instance should be reachable at: https://$DOMAIN"
+
+if [ "$IS_IP" = true ]; then
+    echo -e "Your Binder instance should be reachable at: http://$DOMAIN"
+else
+    echo -e "Your Binder instance should be reachable at: https://$DOMAIN"
+fi
+
 echo -e "To view logs: docker compose logs -f"
