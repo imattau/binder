@@ -28,10 +28,8 @@ export function ensureAdminAssignment(pubkey: string): boolean {
         return existing === pubkey;
     }
 
-    if (!isLocalNetworkHost(typeof window !== 'undefined' ? window.location.hostname : '')) {
-        return false;
-    }
-
+    // Allow the first user to claim admin regardless of hostname
+    // This is crucial for remote VPS setups where the owner is the first to login
     setStoredAdminPubkey(pubkey);
     return true;
 }
