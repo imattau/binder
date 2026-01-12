@@ -199,6 +199,33 @@ This stack:
 
 For DigitalOcean App Platform or other container orchestrators, you can point them to the `Dockerfile`. Ensure you set any necessary environment variables like `RELAY_LIST` or `MEDIA_SERVER` in your platform's configuration.
 
+### 7. Bare Metal Deployment (No Docker)
+
+If you prefer a lighter setup without Docker, use the bare metal installer. This installs Node.js, Caddy, and sets up Binder as a systemd service.
+
+```bash
+# 1. Clone
+git clone https://github.com/your-username/binder.git
+cd binder
+
+# 2. Run Installer (requires sudo)
+sudo ./scripts/install-bare.sh
+```
+
+The script will:
+1.  Install Node.js 20 and Caddy.
+2.  Build the app in `/opt/binder`.
+3.  Create a system user `binder`.
+4.  Setup `binder.service` to run on boot.
+5.  Configure Caddy for your domain/IP with auto-HTTPS.
+
+**Switching from Docker?**
+To clean up your previous Docker deployment before running the bare metal installer:
+
+```bash
+sudo ./scripts/uninstall-docker.sh
+```
+
 ## Contributing
 
 - Follow the existing code style (Svelte + Tailwind). Add tests (or describe manual steps) when touching complex services.
